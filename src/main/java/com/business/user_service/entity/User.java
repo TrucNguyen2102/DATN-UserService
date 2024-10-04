@@ -33,13 +33,19 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "authority_id")
-    private Integer authorityId;
+//    @Column(name = "authority_id")
+//    private Integer authorityId;
+
+//    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne
+    @JoinColumn(name = "authority_id", nullable = false, referencedColumnName = "id")
+    private Authority authority;
 
     public User() {
 
     }
-    public User(Integer id, String fullName, String phone, String email, String password, LocalDateTime createdAt, LocalDateTime updatedAt, Integer authorityId) {
+
+    public User(Integer id, String fullName, String phone, String email, String password, LocalDateTime createdAt, LocalDateTime updatedAt, Authority authority) {
         this.id = id;
         this.fullName = fullName;
         this.phone = phone;
@@ -47,7 +53,7 @@ public class User {
         this.password = password;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.authorityId = authorityId;
+        this.authority = authority;
     }
 
     public Integer getId() {
@@ -106,11 +112,11 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
-    public Integer getAuthorityId() {
-        return authorityId;
+    public Authority getAuthority() {
+        return authority;
     }
 
-    public void setAuthorityId(Integer authorityId) {
-        this.authorityId = authorityId;
+    public void setAuthority(Authority authority) {
+        this.authority = authority;
     }
 }
