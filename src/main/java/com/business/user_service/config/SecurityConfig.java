@@ -28,8 +28,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/login").permitAll()
+                        .requestMatchers("/api/users/{id}/logout").permitAll()
+                        .requestMatchers("/api/users/all").permitAll() // Chỉ admin có thể truy cập
+                        .requestMatchers("/api/users/fullName").permitAll()
                         .requestMatchers("/api/users/admins/register").permitAll()
                         .requestMatchers("/api/users/customers/register").permitAll()
+                        .requestMatchers("/api/users/staffs/add").permitAll()
+                        .requestMatchers("/api/users/staffs/lock/{id}").permitAll()
+                        .requestMatchers("/api/users/staffs/unlock").permitAll()
                         .anyRequest().authenticated()
                 );
 

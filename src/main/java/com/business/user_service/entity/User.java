@@ -25,6 +25,9 @@ public class User {
     @Column(name = "password")
     private String password;
 
+    @Column(name = "status")
+    private String status;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -45,12 +48,13 @@ public class User {
 
     }
 
-    public User(Integer id, String fullName, String phone, String email, String password, LocalDateTime createdAt, LocalDateTime updatedAt, Authority authority) {
+    public User(Integer id, String fullName, String phone, String email, String password, String status, LocalDateTime createdAt, LocalDateTime updatedAt, Authority authority) {
         this.id = id;
         this.fullName = fullName;
         this.phone = phone;
         this.email = email;
         this.password = password;
+        this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.authority = authority;
@@ -94,6 +98,14 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {

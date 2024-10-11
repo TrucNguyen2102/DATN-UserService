@@ -21,17 +21,19 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         // Kiểm tra main admin đã tồn tại trong hệ thống hay chưa
-        if (userService.findByPhone("0703127885") == null) {
+        if (userService.findByPhone("0936596049") == null) {
             // Nếu chưa, tạo mới tài khoản main admin
             BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
             User admin = new User();
             admin.setFullName("ADMIN");
-            admin.setPhone("0703127885");
-            admin.setEmail("nguyenthanhtruc02012002@gmail.com");
+            admin.setPhone("0936596049");
+            admin.setEmail("nguyenthanhtruc010202@gmail.com");
             admin.setPassword(encoder.encode("@Admin123")); // Mã hóa mật khẩu
+            admin.setStatus("Đang hoạt động"); // Gán trạng thái mặc định
             admin.setCreatedAt(LocalDateTime.now());
             admin.setUpdatedAt(LocalDateTime.now());
             admin.setAuthority(authorityRepo.findByName("ADMIN")); // Gán quyền admin
+
 
             // Lưu admin vào database
             userService.saveUser(admin);
