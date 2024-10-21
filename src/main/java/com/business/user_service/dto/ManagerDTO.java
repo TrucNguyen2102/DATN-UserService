@@ -1,6 +1,6 @@
 package com.business.user_service.dto;
 
-public class StaffDTO {
+public class ManagerDTO {
     private String fullName;
     private String phone;
     private String email;
@@ -9,18 +9,17 @@ public class StaffDTO {
     private String status;
     private String role;
 
-
-    public StaffDTO() {
+    public ManagerDTO() {
 
     }
 
-    public StaffDTO(String fullName, String email, String phone, String password, String role, String status) {
+    public ManagerDTO(String fullName, String phone, String email, String password, String status, String role) {
         this.fullName = fullName;
-        this.email = email;
         this.phone = phone;
+        this.email = email;
         this.password = password;
-        this.role = role;
         this.status = status;
+        this.role = role;
     }
 
     public String getFullName() {
@@ -31,20 +30,20 @@ public class StaffDTO {
         this.fullName = fullName;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
     public String getPhone() {
         return phone;
     }
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
@@ -55,19 +54,19 @@ public class StaffDTO {
         this.password = password;
     }
 
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
     public String getStatus() {
         return status;
     }
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

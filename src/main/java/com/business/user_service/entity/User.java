@@ -1,9 +1,11 @@
 package com.business.user_service.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Entity
 @Table(name = "user")
@@ -13,10 +15,10 @@ public class User {
     @Column(name = "id")
     private Integer id;
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", length = 50, nullable = false)
     private String fullName;
 
-    @Column(name = "phone")
+    @Column(name = "phone", length = 12, nullable = false)
     private String phone;
 
     @Column(name = "email")
@@ -25,8 +27,8 @@ public class User {
     @Column(name = "password")
     private String password;
 
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at")
@@ -36,19 +38,15 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-//    @Column(name = "authority_id")
-//    private Integer authorityId;
-
-//    @ManyToOne(fetch = FetchType.EAGER)
-    @ManyToOne
-    @JoinColumn(name = "authority_id", nullable = false, referencedColumnName = "id")
-    private Authority authority;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    private Set<Role_User> roles;
 
     public User() {
 
     }
 
-    public User(Integer id, String fullName, String phone, String email, String password, String status, LocalDateTime createdAt, LocalDateTime updatedAt, Authority authority) {
+    public User(Integer id, String fullName, String phone, String email, String password, UserStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Set<Role_User> roles) {
         this.id = id;
         this.fullName = fullName;
         this.phone = phone;
@@ -57,7 +55,7 @@ public class User {
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.authority = authority;
+        this.roles = roles;
     }
 
     public Integer getId() {
@@ -100,11 +98,11 @@ public class User {
         this.password = password;
     }
 
-    public String getStatus() {
+    public UserStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(UserStatus status) {
         this.status = status;
     }
 
@@ -124,11 +122,20 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
-    public Authority getAuthority() {
-        return authority;
+//    public Authority getAuthority() {
+//        return authority;
+//    }
+//
+//    public void setAuthority(Authority authority) {
+//        this.authority = authority;
+//    }
+
+
+    public Set<Role_User> getRoles() {
+        return roles;
     }
 
-    public void setAuthority(Authority authority) {
-        this.authority = authority;
+    public void setRoles(Set<Role_User> roles) {
+        this.roles = roles;
     }
 }

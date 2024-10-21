@@ -1,13 +1,20 @@
 package com.business.user_service.dto;
 
+import java.util.List;
+
 public class AuthenticationResponse {
     private Integer id;
 
     private String phone; // Số điện thoại
-    private String authority; // Quyền
+//    private String authority; // Quyền
+
+    private String role;
     private String fullName;
 
     private String status;
+    private String token;
+
+
 
 
     public Integer getId() {
@@ -26,12 +33,21 @@ public class AuthenticationResponse {
         this.phone = phone;
     }
 
-    public String getAuthority() {
-        return authority;
+//    public String getAuthority() {
+//        return authority;
+//    }
+//
+//    public void setAuthority(String authority) {
+//        this.authority = authority;
+//    }
+
+
+    public String getRole() {
+        return role;
     }
 
-    public void setAuthority(String authority) {
-        this.authority = authority;
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getFullName() {
@@ -49,4 +65,14 @@ public class AuthenticationResponse {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+
 }

@@ -1,16 +1,18 @@
 package com.business.user_service.controller;
 
 import com.business.user_service.dto.*;
-import com.business.user_service.entity.Authority;
-import com.business.user_service.entity.User;
+import com.business.user_service.entity.*;
+import com.business.user_service.jwt.JwtUtil;
 import com.business.user_service.service.AuthorityService;
 import com.business.user_service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -34,30 +37,61 @@ public class UserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    //api sd
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody AuthenticationRequest request) {
         try {
+
+            // Tìm người dùng theo số điện thoại
+            User user = userService.findByPhone(request.getPhone());
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Thông tin đăng nhập không chính xác.");
+            }
+
+            // Kiểm tra trạng thái tài khoản
+            if (user.getStatus() == UserStatus.BLOCKED) { // Kiểm tra trạng thái
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Tài khoản đã bị khóa.");
+            }
             // Xác thực người dùng bằng số điện thoại và mật khẩu
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getPhone(), request.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // Lấy thông tin người dùng
-            User user = userService.findByPhone(request.getPhone());
+//            // Lấy thông tin người dùng
+//            User user = userService.findByPhone(request.getPhone());
+
+            // Tạo JWT Token
+//            String jwt = jwtUtil.generateToken(authentication);
+            String jwt = jwtUtil.generateToken(authentication.getName());
 
             // Cập nhật trạng thái người dùng về "Đang hoạt động"
-            user.setStatus("Đang hoạt động");
+//            user.setStatus("Đang hoạt động");
+            user.setStatus(UserStatus.ACTIVE);
             userService.updateUser(user); // Lưu trạng thái mới vào cơ sở dữ liệu
 
             // Lấy quyền từ Authority
-            String authority = user.getAuthority().getName();
+            String role = user.getRoles().stream()
+                    .map(Role_User::getRole)
+                    .map(Role::getName) // Giả định Role có phương thức getName()
+                    .collect(Collectors.joining(", ")); // Ghép nhiều quyền nếu có
+
+
+
+
 
             // Tạo phản hồi
             AuthenticationResponse response = new AuthenticationResponse();
             response.setId(user.getId());
             response.setPhone(user.getPhone());
-            response.setAuthority(authority);
+            //response.setAuthority(authority);
+            response.setRole(role);
             response.setFullName(user.getFullName());
+//            user.setStatus((user.getStatus()));
+            response.setStatus(user.getStatus().name());
+            response.setToken(jwt); // Trả JWT về client
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             e.printStackTrace();
@@ -66,21 +100,49 @@ public class UserController {
     }
 
 
+//    @PutMapping("/{id}/logout")
+//    public ResponseEntity<Void> logout(@PathVariable Integer id) {
+//        User user = userService.findById(id); // Tìm người dùng theo ID
+//        if (user != null) {
+//            // Kiểm tra trạng thái người dùng trước khi cập nhật
+////            if ((user.getStatus() == UserStatus.INACTIVE)) {
+////                user.setStatus("Đã đăng xuất"); // Cập nhật trạng thái
+//                user.setStatus(UserStatus.INACTIVE);
+//                userService.updateUser(user); // Lưu thay đổi
+//                return ResponseEntity.ok().build();
+//            } else {
+//                // Nếu trạng thái đã là "Đã đăng xuất"
+//                return ResponseEntity.status(HttpStatus.CONFLICT).build(); // 409 Conflict
+//            }
+////        }
+////        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+//    }
+
+    //api sd
     @PutMapping("/{id}/logout")
     public ResponseEntity<Void> logout(@PathVariable Integer id) {
         User user = userService.findById(id); // Tìm người dùng theo ID
         if (user != null) {
-            user.setStatus("Đã đăng xuất"); // Cập nhật trạng thái
-            userService.updateUser(user); // Lưu thay đổi
-            return ResponseEntity.ok().build();
+            // Kiểm tra nếu người dùng đang ở trạng thái ACTIVE và có thể logout
+            if (user.getStatus() == UserStatus.ACTIVE) {
+                user.setStatus(UserStatus.INACTIVE); // Cập nhật trạng thái thành INACTIVE (đã đăng xuất)
+                userService.updateUser(user); // Lưu thay đổi
+                return ResponseEntity.ok().build(); // Trả về 200 OK
+            } else {
+                // Nếu người dùng đã đăng xuất trước đó
+                return ResponseEntity.status(HttpStatus.CONFLICT).build(); // Trả về 409 Conflict
+            }
         }
+        // Trả về 404 nếu không tìm thấy người dùng
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
+
+
 
     // API thêm nhân viên
     @PostMapping("/staffs/add")
     public ResponseEntity<String> addUser(@RequestBody StaffDTO staffDTO) {
-        if (staffDTO.getAuthority() == null) {
+        if (staffDTO.getRole() == null) {
             return ResponseEntity.badRequest().body("Quyền không hợp lệ.");
         }
         try {
@@ -91,6 +153,8 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Có lỗi xảy ra khi thêm nhân viên.");
         }
     }
+
+
 
 
     // API khóa nhân viên
@@ -106,10 +170,10 @@ public class UserController {
     }
 
     // API mở khóa nhân viên
-    @PostMapping("/staffs/unlock")
-    public ResponseEntity<String> unlockUser(@RequestBody UnlockStaffDTO unlockStaffDTO) {
+    @PutMapping("/staffs/unlock/{id}")
+    public ResponseEntity<String> unlockUser(@PathVariable Integer id) {
         try {
-            userService.unlockUser(unlockStaffDTO.getUserId());
+            userService.unlockUser(id);
             return ResponseEntity.ok("Nhân viên đã được mở khóa và đang hoạt động.");
         } catch (RuntimeException e) {
             e.printStackTrace();
@@ -118,89 +182,115 @@ public class UserController {
     }
 
 
-    @PostMapping("/admin/register")
-    @PreAuthorize("hasAuthority('ADMIN')") // Chỉ cho phép admin thực hiện
-    public ResponseEntity<?> registerOwner(@RequestBody RegisterRequest request) {
-        // Kiểm tra mật khẩu
-        if (!request.getPassword().equals(request.getConfirmPassword())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu không khớp.");
-        }
+//    @PostMapping("/admin/register")
+//    @PreAuthorize("hasAuthority('ADMIN')") // Chỉ cho phép admin thực hiện
+//    public ResponseEntity<?> registerOwner(@RequestBody RegisterRequest request) {
+//        // Kiểm tra mật khẩu
+//        if (!request.getPassword().equals(request.getConfirmPassword())) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu không khớp.");
+//        }
+//
+//        // Kiểm tra số điện thoại đã tồn tại
+//        if (userService.existsByPhone(request.getPhone())) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
+//        }
+//
+//        // Kiểm tra email đã tồn tại
+//        if (userService.existsByEmail(request.getEmail())) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email đã được sử dụng.");
+//        }
+//
+//        // Tạo đối tượng User
+//        User user = new User();
+//        user.setFullName(request.getFullName());
+//        user.setPhone(request.getPhone());
+//        user.setEmail(request.getEmail());
+//        user.setPassword(passwordEncoder.encode(request.getPassword()));
+//        user.setUpdatedAt(LocalDateTime.now());
+//        user.setUpdatedAt(LocalDateTime.now());
+//
+//        // Thiết lập quyền cho owner
+//        Authority authority = authorityService.findByName("OWNER");
+//        if (authority == null) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quyền OWNER không tồn tại.");
+//        }
+//        //user.setAuthority(authority);
+//
+//        // Lưu người dùng
+//        userService.saveUser(user);
+//        return ResponseEntity.ok("Tài khoản owner đã được tạo thành công!");
+//    }
 
-        // Kiểm tra số điện thoại đã tồn tại
-        if (userService.existsByPhone(request.getPhone())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
-        }
+//    @PostMapping("/customer/register")
+//    @PreAuthorize("hasAuthority('CUSTOMER')") // Chỉ cho phép admin thực hiện
+//    public ResponseEntity<?> registerCustomer(@RequestBody RegisterRequest request) {
+//        // Kiểm tra mật khẩu
+//        if (!request.getPassword().equals(request.getConfirmPassword())) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu không khớp.");
+//        }
+//
+//        // Kiểm tra số điện thoại đã tồn tại
+//        if (userService.existsByPhone(request.getPhone())) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
+//        }
+//
+//        // Kiểm tra email đã tồn tại
+//        if (userService.existsByEmail(request.getEmail())) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email đã được sử dụng.");
+//        }
+//
+//        // Tạo đối tượng User
+//        User user = new User();
+//        user.setFullName(request.getFullName());
+//        user.setPhone(request.getPhone());
+//        user.setEmail(request.getEmail());
+//        user.setPassword(passwordEncoder.encode(request.getPassword()));
+//        user.setUpdatedAt(LocalDateTime.now());
+//        user.setUpdatedAt(LocalDateTime.now());
+//
+//        // Thiết lập quyền cho customer
+//        Authority authority = authorityService.findByName("CUSTOMER");
+//        if (authority == null) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quyền CUSTOMER không tồn tại.");
+//        }
+//        //user.setAuthority(authority);
+//
+//        // Lưu người dùng
+//        userService.saveUser(user);
+//        return ResponseEntity.ok("Tài khoản customer đã được tạo thành công!");
+//    }
 
-        // Kiểm tra email đã tồn tại
-        if (userService.existsByEmail(request.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email đã được sử dụng.");
-        }
+//    @GetMapping("/all")
+//    public ResponseEntity<List<User>> getAllUsers() {
+//        try {
+//            List<User> users = userService.getAllUsers();
+//            return ResponseEntity.ok(users); // Trả về danh sách người dùng kèm roles dưới dạng JSON
+//        }catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.badRequest().build();
+//        }
+//
+//    }
 
-        // Tạo đối tượng User
-        User user = new User();
-        user.setFullName(request.getFullName());
-        user.setPhone(request.getPhone());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setUpdatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-
-        // Thiết lập quyền cho owner
-        Authority authority = authorityService.findByName("OWNER");
-        if (authority == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quyền OWNER không tồn tại.");
-        }
-        user.setAuthority(authority);
-
-        // Lưu người dùng
-        userService.saveUser(user);
-        return ResponseEntity.ok("Tài khoản owner đã được tạo thành công!");
-    }
-
-    @PostMapping("/customer/register")
-    @PreAuthorize("hasAuthority('CUSTOMER')") // Chỉ cho phép admin thực hiện
-    public ResponseEntity<?> registerCustomer(@RequestBody RegisterRequest request) {
-        // Kiểm tra mật khẩu
-        if (!request.getPassword().equals(request.getConfirmPassword())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu không khớp.");
-        }
-
-        // Kiểm tra số điện thoại đã tồn tại
-        if (userService.existsByPhone(request.getPhone())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
-        }
-
-        // Kiểm tra email đã tồn tại
-        if (userService.existsByEmail(request.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email đã được sử dụng.");
-        }
-
-        // Tạo đối tượng User
-        User user = new User();
-        user.setFullName(request.getFullName());
-        user.setPhone(request.getPhone());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setUpdatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-
-        // Thiết lập quyền cho customer
-        Authority authority = authorityService.findByName("CUSTOMER");
-        if (authority == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quyền CUSTOMER không tồn tại.");
-        }
-        user.setAuthority(authority);
-
-        // Lưu người dùng
-        userService.saveUser(user);
-        return ResponseEntity.ok("Tài khoản customer đã được tạo thành công!");
-    }
-
+    //api sd
+    // API lấy danh sách người dùng với các vai trò
+//    @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/all")
-    @PreAuthorize("hasAuthority('ADMIN')") // Chỉ cho phép admin thực hiện
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        try {
+            List<UserDTO> users = userService.getAllUsersWithRoles();
+            return ResponseEntity.ok(users);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
+
     }
+
+
+
+
 
     @GetMapping("/fullName")
     public ResponseEntity<User> getUser(@RequestParam String fullName) {
@@ -209,6 +299,51 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(user);
+    }
+
+
+
+    @PutMapping("/staffs/update/{id}")
+    public ResponseEntity<User> updateStaff(@PathVariable Integer id, @RequestBody User updatedUser) {
+        // Kiểm tra giá trị id trước khi xử lý
+        if (id == null) {
+            return ResponseEntity.badRequest().build(); // Trả về 400 nếu id không hợp lệ
+        }
+
+        User user = userService.findById(id);
+        if (user != null) {
+            user.setFullName(updatedUser.getFullName());
+            user.setPhone(updatedUser.getPhone());
+            user.setEmail(updatedUser.getEmail());
+           // user.setAuthority(updatedUser.getAuthority());
+            userService.updateUser(user);
+            return ResponseEntity.ok(user);
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    @GetMapping("/managers/customers/all")
+    public ResponseEntity<List<User>> getCustomers() {
+        try {
+            List<User> customers = userService.getCustomers();
+            return ResponseEntity.ok(customers);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+    }
+
+    @GetMapping("/managers/staffs/all")
+    public ResponseEntity<List<User>> getStaffs() {
+        try {
+            List<User> staffs = userService.getStaffs();
+            return ResponseEntity.ok(staffs);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
     }
 
 }
