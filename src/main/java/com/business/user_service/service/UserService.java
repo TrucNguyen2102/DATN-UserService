@@ -3,7 +3,6 @@ package com.business.user_service.service;
 import com.business.user_service.dto.ManagerDTO;
 import com.business.user_service.dto.StaffDTO;
 import com.business.user_service.dto.UserDTO;
-import com.business.user_service.entity.Authority;
 import com.business.user_service.entity.Role_User;
 import com.business.user_service.entity.User;
 
@@ -24,9 +23,6 @@ public interface UserService {
 
     User findByFullName(String fullName);
 
-
-
-
     void updateUser(User user);
 
     User findById(Integer id);
@@ -35,7 +31,7 @@ public interface UserService {
 
     void addManager(ManagerDTO managerDTO);
 
-    void editUser(Integer id, StaffDTO staffDTO);
+//    void editUser(Integer id, StaffDTO staffDTO);
 
     void lockUser(Integer id);
 
@@ -45,9 +41,11 @@ public interface UserService {
 
     List<UserDTO> getAllUsersWithRoles();
 
+
+
     List<User> getCustomers();
 
-    List<User> getStaffs();
+    List<UserDTO> getUsersByRole(String roleName);
 
 
 }

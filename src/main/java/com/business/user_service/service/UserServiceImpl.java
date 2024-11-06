@@ -1,11 +1,10 @@
 package com.business.user_service.service;
 
 import com.business.user_service.dto.ManagerDTO;
+import com.business.user_service.dto.RegisterRequest;
 import com.business.user_service.dto.StaffDTO;
 import com.business.user_service.dto.UserDTO;
 import com.business.user_service.entity.*;
-import com.business.user_service.exception.ResourceNotFoundException;
-import com.business.user_service.repository.AuthorityRepo;
 import com.business.user_service.repository.RoleRepo;
 import com.business.user_service.repository.RoleUserRepo;
 import com.business.user_service.repository.UserRepo;
@@ -29,10 +28,10 @@ public class UserServiceImpl implements UserService{
 
     @Autowired
     private RoleUserRepo roleUserRepo;
-    @Autowired
-    private AuthorityRepo authorityRepo;
-    @Autowired
-    private AuthorityService authorityService;
+//    @Autowired
+//    private AuthorityRepo authorityRepo;
+//    @Autowired
+//    private AuthorityService authorityService;
     private final PasswordEncoder passwordEncoder;
 
     public UserServiceImpl(PasswordEncoder passwordEncoder) {
@@ -98,20 +97,23 @@ public class UserServiceImpl implements UserService{
         String encodedPassword = passwordEncoder.encode(staffDTO.getPassword());
         user.setPassword(encodedPassword);
 
-        // Lấy đối tượng Authority từ tên quyền
-        Authority authority = authorityRepo.findByName(staffDTO.getRole());
-//        user.setStatus("Đang hoạt động"); // Trạng thái mặc định
+
         user.setStatus(UserStatus.ACTIVE);
-        // Kiểm tra xem authority có phải là null không
-        if (authority == null) {
-            throw new IllegalArgumentException("Quyền không hợp lệ: " + staffDTO.getRole());
-        }
-        //user.setAuthority(authority);
-
-
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
+
         userRepo.save(user);
+
+        // Lấy đối tượng Role từ tên vai trò
+        Role role = roleRepo.findByName(staffDTO.getRole());
+
+        if (role == null) {
+            throw new IllegalArgumentException("Vai trò không hợp lệ: " + staffDTO.getRole());
+        }
+
+        // Lưu vào bảng Role_User
+        Role_User roleUser = new Role_User(role, user);
+        roleUserRepo.save(roleUser);
     }
 
     @Override
@@ -148,18 +150,20 @@ public class UserServiceImpl implements UserService{
 
 
 
-    @Override
-    public void editUser(Integer id, StaffDTO staffDTO) {
-        User user = userRepo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên."));
-        user.setFullName(staffDTO.getFullName());
-        user.setEmail(staffDTO.getEmail());
-        user.setPhone(staffDTO.getPhone());
-        user.setPassword(staffDTO.getPassword());
-        // Lấy đối tượng Authority từ tên quyền
-        Authority authority = authorityRepo.findByName(staffDTO.getRole());
-        //user.setAuthority(authority);
-        userRepo.save(user);
-    }
+
+
+//    @Override
+//    public void editUser(Integer id, StaffDTO staffDTO) {
+//        User user = userRepo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên."));
+//        user.setFullName(staffDTO.getFullName());
+//        user.setEmail(staffDTO.getEmail());
+//        user.setPhone(staffDTO.getPhone());
+//        user.setPassword(staffDTO.getPassword());
+//        // Lấy đối tượng Authority từ tên quyền
+//        Authority authority = authorityRepo.findByName(staffDTO.getRole());
+//        //user.setAuthority(authority);
+//        userRepo.save(user);
+//    }
 
     @Override
     public void lockUser(Integer id) {
@@ -207,12 +211,20 @@ public class UserServiceImpl implements UserService{
         }).collect(Collectors.toList());
     }
 
+
+
     public List<User> getCustomers() {
         return userRepo.findByRoleName("CUSTOMER");
     }
 
-    public List<User> getStaffs() {
-        return userRepo.findByRoleName("STAFF");
+    public List<UserDTO> getUsersByRole(String roleName) {
+        List<User> users = userRepo.findAll(); // Lấy tất cả người dùng
+        return users.stream()
+                .filter(user -> user.getRoles().stream()
+                        .anyMatch(roleUser -> roleUser.getRole().getName().equals(roleName)))
+                .map(UserDTO::fromUser) // Chuyển thành DTO
+                .collect(Collectors.toList());
     }
+
 
 }

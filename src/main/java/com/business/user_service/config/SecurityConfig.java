@@ -35,6 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/login").permitAll() //cho tất cả người dùng
                         .requestMatchers("/api/users/{id}/logout").permitAll() //cho tất cả người dùng
                                 .requestMatchers("/api/users/fullName").permitAll()
+                                .requestMatchers("/api/users/fullNameUser").permitAll()
 
                         .requestMatchers("/api/users/all").hasAuthority("ADMIN")// xem ds tất cả user
                         .requestMatchers("/api/users/admins/total-users").hasAuthority("ADMIN") // đếm số user
@@ -51,8 +52,11 @@ public class SecurityConfig {
 
                                 .requestMatchers("/api/users/managers/customers/all").hasAuthority("MANAGER")
                                 .requestMatchers("/api/users/managers/staffs/all").hasAuthority("MANAGER")
+                                .requestMatchers("/api/users/managers/staffs/add").hasAuthority("MANAGER")
+                                .requestMatchers("/api/users/managers/staffs/lock/{id}").hasAuthority("MANAGER")
+                                .requestMatchers("/api/users/managers/staffs/unlock/{id}").hasAuthority("MANAGER")
 //                        .requestMatchers("/api/users/admins/register").permitAll()
-//                        .requestMatchers("/api/users/customers/register").permitAll()
+                        .requestMatchers("/api/users/customers/register").permitAll()
 //                        .requestMatchers("/api/users/staffs/add").permitAll()
 //                        .requestMatchers("/api/users/staffs/lock/{id}").permitAll()
 //                        .requestMatchers("/api/users/staffs/unlock/{id}").permitAll()

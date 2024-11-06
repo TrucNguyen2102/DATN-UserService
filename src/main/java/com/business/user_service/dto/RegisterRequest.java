@@ -6,7 +6,13 @@ public class RegisterRequest {
     private String email;
     private String password;
 
-    private String confirmPassword;
+//    private String confirmPassword;
+
+    private String status;
+
+    private String role;
+
+
 
 
 
@@ -42,11 +48,28 @@ public class RegisterRequest {
         this.password = password;
     }
 
-    public String getConfirmPassword() {
-        return confirmPassword;
+//    public String getConfirmPassword() {
+//        return confirmPassword;
+//    }
+//
+//    public void setConfirmPassword(String confirmPassword) {
+//        this.confirmPassword = confirmPassword;
+//    }
+
+
+    public String getStatus() {
+        return status;
     }
 
-    public void setConfirmPassword(String confirmPassword) {
-        this.confirmPassword = confirmPassword;
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

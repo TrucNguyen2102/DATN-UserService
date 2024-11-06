@@ -1,7 +1,6 @@
 package com.business.user_service.init;
 
 import com.business.user_service.entity.*;
-import com.business.user_service.repository.AuthorityRepo;
 import com.business.user_service.repository.RoleRepo;
 import com.business.user_service.repository.RoleUserRepo;
 import com.business.user_service.service.UserService;

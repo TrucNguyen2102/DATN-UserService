@@ -3,17 +3,16 @@ package com.business.user_service.controller;
 import com.business.user_service.dto.*;
 import com.business.user_service.entity.*;
 import com.business.user_service.jwt.JwtUtil;
-import com.business.user_service.service.AuthorityService;
+import com.business.user_service.repository.RoleRepo;
+import com.business.user_service.repository.RoleUserRepo;
 import com.business.user_service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.annotation.Secured;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,14 +27,20 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private AuthorityService authorityService;
+//    @Autowired
+//    private AuthorityService authorityService;
 
     @Autowired
     private AuthenticationManager authenticationManager;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private RoleRepo roleRepo;
+
+    @Autowired
+    private RoleUserRepo roleUserRepo;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -137,10 +142,41 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
+    @GetMapping("/fullName")
+    public ResponseEntity<User> getUser(@RequestParam String fullName) {
+        User user = userService.findByFullName(fullName);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(user);
+    }
+
+    @GetMapping("/fullNameUser")
+    public ResponseEntity<String> getUserFullName(@RequestParam Integer userId) {
+        User user = userService.findById(userId);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(user.getFullName());
+    }
 
 
-    // API thêm nhân viên
-    @PostMapping("/staffs/add")
+    @GetMapping("/all")
+
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        try {
+            List<UserDTO> users = userService.getAllUsersWithRoles();
+            return ResponseEntity.ok(users);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
+
+    }
+
+
+//    // API thêm nhân viên
+    @PostMapping("/managers/staffs/add")
     public ResponseEntity<String> addUser(@RequestBody StaffDTO staffDTO) {
         if (staffDTO.getRole() == null) {
             return ResponseEntity.badRequest().body("Quyền không hợp lệ.");
@@ -154,11 +190,15 @@ public class UserController {
         }
     }
 
+    @GetMapping("/managers/staffs/all")
+    public List<UserDTO> getStaffUsers() {
+        return userService.getUsersByRole("STAFF");
+    }
 
 
 
     // API khóa nhân viên
-    @PutMapping("/staffs/lock/{id}")
+    @PutMapping("/managers/staffs/lock/{id}")
     public ResponseEntity<String> lockUser(@PathVariable Integer id) {
         try {
             userService.lockUser(id);
@@ -170,7 +210,7 @@ public class UserController {
     }
 
     // API mở khóa nhân viên
-    @PutMapping("/staffs/unlock/{id}")
+    @PutMapping("/managers/staffs/unlock/{id}")
     public ResponseEntity<String> unlockUser(@PathVariable Integer id) {
         try {
             userService.unlockUser(id);
@@ -272,18 +312,64 @@ public class UserController {
 //
 //    }
 
-    //api sd
-    // API lấy danh sách người dùng với các vai trò
-//    @PreAuthorize("hasAuthority('ADMIN')")
-    @GetMapping("/all")
 
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
+
+    @PostMapping("/customers/register")
+    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
         try {
-            List<UserDTO> users = userService.getAllUsersWithRoles();
-            return ResponseEntity.ok(users);
-        }catch (Exception e) {
+            //        // Kiểm tra mật khẩu có khớp không
+//        if (!request.getPassword().equals(request.getConfirmPassword())) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu không khớp.");
+//        }
+
+            // Kiểm tra số điện thoại đã tồn tại
+            if (userService.existsByPhone(request.getPhone())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
+            }
+
+            // Kiểm tra email đã tồn tại
+            if (userService.existsByEmail(request.getEmail())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email đã được sử dụng.");
+            }
+
+            // Tạo đối tượng User
+            User user = new User();
+            user.setFullName(request.getFullName());
+            user.setPhone(request.getPhone());
+            user.setEmail(request.getEmail());
+
+            // Mã hóa mật khẩu
+            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            String encodedPassword = passwordEncoder.encode(request.getPassword());
+            user.setPassword(encodedPassword);
+
+            user.setStatus(UserStatus.ACTIVE);
+
+            user.setCreatedAt(LocalDateTime.now());
+            user.setUpdatedAt(LocalDateTime.now());
+
+
+            // Lấy đối tượng Role từ tên vai trò
+            Role customerRole  = roleRepo.findByName("CUSTOMER");
+
+            if (customerRole  == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Vai trò CUSTOMER không tồn tại.");
+
+            }
+
+            // Lưu User vào cơ sở dữ liệu
+            userService.saveUser(user);
+
+
+            // Lưu vào bảng Role_User để gán role "CUSTOMER" cho user mới
+            Role_User roleUser = new Role_User(customerRole, user);
+            roleUserRepo.save(roleUser);
+            return ResponseEntity.ok("Tài khoản customer đã được tạo thành công!");
+
+
+        } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đã có lỗi xảy ra.");
         }
 
     }
@@ -292,14 +378,8 @@ public class UserController {
 
 
 
-    @GetMapping("/fullName")
-    public ResponseEntity<User> getUser(@RequestParam String fullName) {
-        User user = userService.findByFullName(fullName);
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(user);
-    }
+
+
 
 
 
@@ -322,28 +402,24 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
+//    @GetMapping("/managers/customers/all")
+//    public ResponseEntity<List<User>> getCustomers() {
+//        try {
+//            List<User> customers = userService.getCustomers();
+//            return ResponseEntity.ok(customers);
+//        }catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+//        }
+//
+//    }
+
+
     @GetMapping("/managers/customers/all")
-    public ResponseEntity<List<User>> getCustomers() {
-        try {
-            List<User> customers = userService.getCustomers();
-            return ResponseEntity.ok(customers);
-        }catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
+    public List<UserDTO> getCustomerUsers() {
+        return userService.getUsersByRole("CUSTOMER");
     }
 
-    @GetMapping("/managers/staffs/all")
-    public ResponseEntity<List<User>> getStaffs() {
-        try {
-            List<User> staffs = userService.getStaffs();
-            return ResponseEntity.ok(staffs);
-        }catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
 
-    }
 
 }
