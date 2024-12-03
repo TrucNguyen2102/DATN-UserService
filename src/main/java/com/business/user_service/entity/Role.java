@@ -20,14 +20,14 @@ public class Role {
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<Role_User> users;
 
-    @ManyToMany
-    @JoinTable(
-            name = "role_permission", // Tên bảng trung gian
-            joinColumns = @JoinColumn(name = "role_id"), // Khóa ngoại từ Role
-            inverseJoinColumns = @JoinColumn(name = "permission_id") // Khóa ngoại từ Permission
-    )
-//    private Set<Permission> permissions;
-    private Set<Permission> permissions = new HashSet<>();
+//    @ManyToMany
+//    @JoinTable(
+//            name = "role_permission", // Tên bảng trung gian
+//            joinColumns = @JoinColumn(name = "role_id"), // Khóa ngoại từ Role
+//            inverseJoinColumns = @JoinColumn(name = "permission_id") // Khóa ngoại từ Permission
+//    )
+////    private Set<Permission> permissions;
+//    private Set<Permission> permissions = new HashSet<>();
 
     public Role() {
 
@@ -76,11 +76,11 @@ public class Role {
         this.users = users;
     }
 
-    public Set<Permission> getPermissions() {
-        return permissions;
-    }
-
-    public void setPermissions(Set<Permission> permissions) {
-        this.permissions = permissions;
-    }
+//    public Set<Permission> getPermissions() {
+//        return permissions;
+//    }
+//
+//    public void setPermissions(Set<Permission> permissions) {
+//        this.permissions = permissions;
+//    }
 }

@@ -1,6 +1,8 @@
 package com.business.user_service.repository;
 
 import com.business.user_service.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -24,5 +26,13 @@ public interface UserRepo extends JpaRepository<User, Integer> {
     @Query("SELECT u FROM User u JOIN u.roles r WHERE r.role.name = :roleName")
     List<User> findByRoleName(String roleName);
 
+
+//    List<User> findUserByFullNameOrPhone(String fullName, String phone);
+
+    List<User> findByFullNameContaining(String fullName);
+    List<User> findByPhoneContaining(String phone);
+    List<User> findByFullNameContainingOrPhoneContaining(String fullName, String phone);
+
+    Page<User> findAll(Pageable pageable);
 
 }

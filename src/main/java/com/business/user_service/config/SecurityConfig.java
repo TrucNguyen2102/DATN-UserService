@@ -32,10 +32,18 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                                .requestMatchers("/api/users/endpoints").permitAll() //cho tất cả người dùng
                         .requestMatchers("/api/users/login").permitAll() //cho tất cả người dùng
                         .requestMatchers("/api/users/{id}/logout").permitAll() //cho tất cả người dùng
+                                .requestMatchers("/api/users/{id}").permitAll() //cho tất cả người dùng
                                 .requestMatchers("/api/users/fullName").permitAll()
                                 .requestMatchers("/api/users/fullNameUser").permitAll()
+                                .requestMatchers("/api/users/{id}/email").permitAll()
+                                .requestMatchers("/api/users/search").permitAll() //cho tất cả người dùng
+                                .requestMatchers("/api/users/update/{userId}").permitAll() //cho tất cả người dùng
+                                .requestMatchers("/api/users/change-password/{userId}").permitAll()
+                                .requestMatchers("/api/users/{id}/updateAt").permitAll()
+
 
                         .requestMatchers("/api/users/all").hasAuthority("ADMIN")// xem ds tất cả user
                         .requestMatchers("/api/users/admins/total-users").hasAuthority("ADMIN") // đếm số user

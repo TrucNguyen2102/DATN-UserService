@@ -1,10 +1,13 @@
 package com.business.user_service.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+
 import java.util.Set;
 
 @Entity
@@ -17,6 +20,10 @@ public class User {
 
     @Column(name = "full_name", length = 50, nullable = false)
     private String fullName;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    @Column(name = "birthday")
+    private LocalDate birthDay;
 
     @Column(name = "phone", length = 12, nullable = false)
     private String phone;
@@ -40,15 +47,17 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JsonManagedReference
+    @JsonIgnore
     private Set<Role_User> roles;
 
     public User() {
 
     }
 
-    public User(Integer id, String fullName, String phone, String email, String password, UserStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Set<Role_User> roles) {
+    public User(Integer id, String fullName, LocalDate birthDay, String phone, String email, String password, UserStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Set<Role_User> roles) {
         this.id = id;
         this.fullName = fullName;
+        this.birthDay = birthDay;
         this.phone = phone;
         this.email = email;
         this.password = password;
@@ -72,6 +81,14 @@ public class User {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public LocalDate getBirthDay() {
+        return birthDay;
+    }
+
+    public void setBirthDay(LocalDate birthDay) {
+        this.birthDay = birthDay;
     }
 
     public String getPhone() {

@@ -7,6 +7,9 @@ import com.business.user_service.repository.RoleRepo;
 import com.business.user_service.repository.RoleUserRepo;
 import com.business.user_service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,6 +22,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -26,9 +30,6 @@ import java.util.stream.Collectors;
 public class UserController {
     @Autowired
     private UserService userService;
-
-//    @Autowired
-//    private AuthorityService authorityService;
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -44,6 +45,34 @@ public class UserController {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @GetMapping("/endpoints")
+    public List<Map<String, String>> getEndpoints() {
+        return List.of(
+                Map.of("service", "user-service", "method", "POST", "url", "/api/users/login"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/all"),
+                Map.of("service", "user-service", "method", "PUT", "url", "/api/users/{id}/logout"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/fullNameUser"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/{userId}"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/{id}/email"),
+                Map.of("service", "user-service", "method", "PUT", "url", "/api/users/update/{id}"),
+                Map.of("service", "user-service", "method", "PUT", "url", "/api/users/change-password/{id}"),
+
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/admins/total-users"),
+                Map.of("service", "user-service", "method", "POST", "url", "/api/users/admins/managers/add"),
+
+                Map.of("service", "user-service", "method", "PUT", "url", "/api/users/managers/update/{id}"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/managers/customers/all "),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/managers/staffs/all "),
+                Map.of("service", "user-service", "method", "PUT", "url", "/api/users/managers/staffs/lock/{id}"),
+                Map.of("service", "user-service", "method", "PUT", "url", "/api/users/managers/staffs/unlock/{id}")
+
+
+
+
+
+        );
+    }
 
     //api sd
     @PostMapping("/login")
@@ -65,15 +94,9 @@ public class UserController {
                     new UsernamePasswordAuthenticationToken(request.getPhone(), request.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-//            // Lấy thông tin người dùng
-//            User user = userService.findByPhone(request.getPhone());
-
-            // Tạo JWT Token
-//            String jwt = jwtUtil.generateToken(authentication);
             String jwt = jwtUtil.generateToken(authentication.getName());
 
             // Cập nhật trạng thái người dùng về "Đang hoạt động"
-//            user.setStatus("Đang hoạt động");
             user.setStatus(UserStatus.ACTIVE);
             userService.updateUser(user); // Lưu trạng thái mới vào cơ sở dữ liệu
 
@@ -83,18 +106,14 @@ public class UserController {
                     .map(Role::getName) // Giả định Role có phương thức getName()
                     .collect(Collectors.joining(", ")); // Ghép nhiều quyền nếu có
 
-
-
-
-
             // Tạo phản hồi
             AuthenticationResponse response = new AuthenticationResponse();
             response.setId(user.getId());
             response.setPhone(user.getPhone());
-            //response.setAuthority(authority);
+            response.setEmail(user.getEmail());
+            response.setBirthDay(user.getBirthDay());
             response.setRole(role);
             response.setFullName(user.getFullName());
-//            user.setStatus((user.getStatus()));
             response.setStatus(user.getStatus().name());
             response.setToken(jwt); // Trả JWT về client
             return ResponseEntity.ok(response);
@@ -104,24 +123,6 @@ public class UserController {
         }
     }
 
-
-//    @PutMapping("/{id}/logout")
-//    public ResponseEntity<Void> logout(@PathVariable Integer id) {
-//        User user = userService.findById(id); // Tìm người dùng theo ID
-//        if (user != null) {
-//            // Kiểm tra trạng thái người dùng trước khi cập nhật
-////            if ((user.getStatus() == UserStatus.INACTIVE)) {
-////                user.setStatus("Đã đăng xuất"); // Cập nhật trạng thái
-//                user.setStatus(UserStatus.INACTIVE);
-//                userService.updateUser(user); // Lưu thay đổi
-//                return ResponseEntity.ok().build();
-//            } else {
-//                // Nếu trạng thái đã là "Đã đăng xuất"
-//                return ResponseEntity.status(HttpStatus.CONFLICT).build(); // 409 Conflict
-//            }
-////        }
-////        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-//    }
 
     //api sd
     @PutMapping("/{id}/logout")
@@ -151,6 +152,7 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+
     @GetMapping("/fullNameUser")
     public ResponseEntity<String> getUserFullName(@RequestParam Integer userId) {
         User user = userService.findById(userId);
@@ -160,22 +162,162 @@ public class UserController {
         return ResponseEntity.ok(user.getFullName());
     }
 
-
-    @GetMapping("/all")
-
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
+    @GetMapping("/{id}/email")
+    public ResponseEntity<String> getEmailByUserId(@PathVariable("id") Integer userId) {
         try {
-            List<UserDTO> users = userService.getAllUsersWithRoles();
+            String email = userService.getEmailByUserId(userId);
+            return (email != null) ? ResponseEntity.ok(email) : ResponseEntity.notFound().build();
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<User>> searchUsers(
+
+            @RequestParam(required = false) String fullName,
+            @RequestParam(required = false) String phone) {
+        try {
+            List<User> users = userService.searchUsers(fullName, phone);
             return ResponseEntity.ok(users);
         }catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
     }
 
 
-//    // API thêm nhân viên
+//    @GetMapping("/all")
+//
+//    public ResponseEntity<List<UserDTO>> getAllUsers() {
+//        try {
+//            List<UserDTO> users = userService.getAllUsersWithRoles();
+//            return ResponseEntity.ok(users);
+//        }catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.badRequest().build();
+//        }
+//
+//    }
+
+//    @GetMapping("/all")
+//    public ResponseEntity<Page<UserDTO>> getAllUsers(Pageable pageable) {
+//        try {
+//            Page<UserDTO> users = userService.getAllUsersWithRoles(pageable);
+//            return ResponseEntity.ok(users);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.badRequest().build();
+//        }
+//    }
+
+    @GetMapping("/all")
+    public ResponseEntity<Page<UserDTO>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<UserDTO> users = userService.getAllUsersWithRoles(pageable);
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable Integer id) {
+        try {
+            // Giả sử bạn có service để tìm người dùng theo id
+            User user = userService.findById(id);
+
+            if (user != null) {
+                return ResponseEntity.ok(user);  // Trả về thông tin người dùng
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+    }
+
+    // API cập nhật thông tin người dùng
+    @PutMapping("/update/{userId}")
+    public ResponseEntity<User> updateUser(@PathVariable Integer userId, @RequestBody User updatedUser) {
+        if (userId == null) {
+            return ResponseEntity.badRequest().body(null); // Trả về lỗi nếu userId không hợp lệ
+        }
+
+        try {
+            // Lấy thông tin người dùng từ cơ sở dữ liệu
+            User user = userService.findById(userId);
+
+            // Cập nhật thông tin nếu người dùng tồn tại
+            if (user != null) {
+                user.setFullName(updatedUser.getFullName());
+                user.setPhone(updatedUser.getPhone());
+                user.setEmail(updatedUser.getEmail());
+                user.setBirthDay(updatedUser.getBirthDay()); // Cập nhật ngày sinh
+
+                // Lưu lại thông tin đã cập nhật
+                User savedUser = userService.save(user);
+                return ResponseEntity.ok(savedUser);
+            } else {
+                return ResponseEntity.notFound().build(); // Nếu không tìm thấy người dùng
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(null); // Trả về lỗi server nếu có lỗi xảy ra
+        }
+    }
+
+//    @PutMapping("/users/change-password/{userId}")
+//    public ResponseEntity<String> changePassword(@PathVariable Integer userId, @RequestBody PasswordChangeRequest passwordChangeRequest) {
+//        try {
+//            userService.changePassword(userId, passwordChangeRequest.getOldPassword(), passwordChangeRequest.getNewPassword());
+//            return ResponseEntity.ok("Password changed successfully");
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to change password");
+//        }
+//    }
+
+    @PutMapping("/change-password/{userId}")
+    public ResponseEntity<?> changePassword(
+            @PathVariable Integer userId,
+            @RequestBody PasswordChangeRequest request) {
+
+        try {
+            userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
+            return ResponseEntity.ok("Password changed successfully!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/updateAt")
+    public ResponseEntity<User> updateUpdatedAt(@PathVariable Integer id) {
+        try {
+            User updatedUser = userService.updateUpdatedAt(id);
+            return ResponseEntity.ok(updatedUser);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+    }
+
+
+
+    //    // API thêm nhân viên
     @PostMapping("/managers/staffs/add")
     public ResponseEntity<String> addUser(@RequestBody StaffDTO staffDTO) {
         if (staffDTO.getRole() == null) {
@@ -335,6 +477,7 @@ public class UserController {
             // Tạo đối tượng User
             User user = new User();
             user.setFullName(request.getFullName());
+            user.setBirthDay(request.getBirthDay());
             user.setPhone(request.getPhone());
             user.setEmail(request.getEmail());
 

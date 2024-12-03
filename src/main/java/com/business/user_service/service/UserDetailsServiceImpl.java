@@ -1,6 +1,6 @@
 package com.business.user_service.service;
 
-import com.business.user_service.entity.Permission;
+//import com.business.user_service.entity.Permission;
 import com.business.user_service.entity.Role_User;
 import com.business.user_service.entity.User;
 import com.business.user_service.entity.Role;

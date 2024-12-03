@@ -1,7 +1,12 @@
 package com.business.user_service.dto;
 
+import java.time.LocalDate;
+
 public class RegisterRequest {
     private String fullName;
+
+    private LocalDate birthDay;
+
     private String phone;
     private String email;
     private String password;
@@ -22,6 +27,14 @@ public class RegisterRequest {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public LocalDate getBirthDay() {
+        return birthDay;
+    }
+
+    public void setBirthDay(LocalDate birthDay) {
+        this.birthDay = birthDay;
     }
 
     public String getPhone() {

@@ -3,13 +3,17 @@ package com.business.user_service.dto;
 import com.business.user_service.entity.User;
 import com.business.user_service.entity.UserStatus;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class UserDTO {
     private Integer id;
     private String fullName;
+
+    private LocalDate birthDay;
     private String phone;
 
     private String email;
@@ -19,9 +23,10 @@ public class UserDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public UserDTO(Integer id, String fullName, String phone, String email, UserStatus status, Set<String> roles, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public UserDTO(Integer id, String fullName, LocalDate birthDay, String phone, String email, UserStatus status, Set<String> roles, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.fullName = fullName;
+        this.birthDay = birthDay;
         this.phone = phone;
         this.email = email;
         this.status = status;
@@ -49,6 +54,14 @@ public class UserDTO {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public LocalDate getBirthDay() {
+        return birthDay;
+    }
+
+    public void setBirthDay(LocalDate birthDay) {
+        this.birthDay = birthDay;
     }
 
     public String getPhone() {
@@ -109,6 +122,7 @@ public class UserDTO {
         return new UserDTO(
                 user.getId(),
                 user.getFullName(),
+                user.getBirthDay(),
                 user.getPhone(),
                 user.getEmail(),
                 user.getStatus(),

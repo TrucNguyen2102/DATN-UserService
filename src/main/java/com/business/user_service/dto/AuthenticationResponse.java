@@ -1,5 +1,7 @@
 package com.business.user_service.dto;
 
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 
 public class AuthenticationResponse {
@@ -13,6 +15,10 @@ public class AuthenticationResponse {
 
     private String status;
     private String token;
+
+    private LocalDate birthDay;
+
+    private String email;
 
 
 
@@ -74,5 +80,19 @@ public class AuthenticationResponse {
         this.token = token;
     }
 
+    public LocalDate getBirthDay() {
+        return birthDay;
+    }
 
+    public void setBirthDay(LocalDate birthDay) {
+        this.birthDay = birthDay;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
 }

@@ -5,10 +5,16 @@ import com.business.user_service.dto.StaffDTO;
 import com.business.user_service.dto.UserDTO;
 import com.business.user_service.entity.Role_User;
 import com.business.user_service.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
 public interface UserService {
+
+    // Lưu người dùng vào cơ sở dữ liệu
+    User save(User user);
+
     User findByPhone(String phone);
 
     void saveUser(User user);
@@ -27,6 +33,8 @@ public interface UserService {
 
     User findById(Integer id);
 
+    String getEmailByUserId(Integer userId);
+
     void addStaff(StaffDTO staffDTO);
 
     void addManager(ManagerDTO managerDTO);
@@ -39,7 +47,9 @@ public interface UserService {
 
     void saveRoleUser(Role_User roleUser);
 
-    List<UserDTO> getAllUsersWithRoles();
+//    List<UserDTO> getAllUsersWithRoles();
+
+    Page<UserDTO> getAllUsersWithRoles(Pageable pageable);
 
 
 
@@ -47,5 +57,11 @@ public interface UserService {
 
     List<UserDTO> getUsersByRole(String roleName);
 
+    List<User> searchUsers(String fullName, String phone);
 
+
+//    boolean changePassword(String oldPassword, String newPassword);
+void changePassword(Integer userId, String oldPassword, String newPassword);
+
+    User updateUpdatedAt(Integer id);
 }

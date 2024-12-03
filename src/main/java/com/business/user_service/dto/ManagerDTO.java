@@ -1,7 +1,10 @@
 package com.business.user_service.dto;
 
+import java.util.Date;
+
 public class ManagerDTO {
     private String fullName;
+    private Date birthDay;
     private String phone;
     private String email;
 
@@ -13,8 +16,9 @@ public class ManagerDTO {
 
     }
 
-    public ManagerDTO(String fullName, String phone, String email, String password, String status, String role) {
+    public ManagerDTO(String fullName, Date birthDay, String phone, String email, String password, String status, String role) {
         this.fullName = fullName;
+        this.birthDay = birthDay;
         this.phone = phone;
         this.email = email;
         this.password = password;
@@ -28,6 +32,14 @@ public class ManagerDTO {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public Date getBirthDay() {
+        return birthDay;
+    }
+
+    public void setBirthDay(Date birthDay) {
+        this.birthDay = birthDay;
     }
 
     public String getPhone() {

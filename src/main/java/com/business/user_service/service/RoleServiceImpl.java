@@ -1,9 +1,9 @@
 package com.business.user_service.service;
 
 import com.business.user_service.dto.RoleDTO;
-import com.business.user_service.entity.Permission;
+//import com.business.user_service.entity.Permission;
 import com.business.user_service.entity.Role;
-import com.business.user_service.repository.PermissionRepo;
+//import com.business.user_service.repository.PermissionRepo;
 import com.business.user_service.repository.RoleRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,8 +18,8 @@ public class RoleServiceImpl implements RoleService{
 
     @Autowired
     private RoleRepo roleRepo;
-    @Autowired
-    private PermissionRepo permissionRepo;
+//    @Autowired
+//    private PermissionRepo permissionRepo;
 
     // Lấy tất cả vai trò
     @Override

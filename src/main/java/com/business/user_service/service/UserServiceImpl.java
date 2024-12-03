@@ -9,11 +9,14 @@ import com.business.user_service.repository.RoleRepo;
 import com.business.user_service.repository.RoleUserRepo;
 import com.business.user_service.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -38,7 +41,10 @@ public class UserServiceImpl implements UserService{
         this.passwordEncoder = passwordEncoder;
     }
 
-
+    // Lưu người dùng vào cơ sở dữ liệu
+    public User save(User user) {
+        return userRepo.save(user);
+    }
 
     @Override
     // Phương thức tìm kiếm người dùng theo số điện thoại
@@ -83,6 +89,11 @@ public class UserServiceImpl implements UserService{
     public User findById(Integer id) {
         Optional<User> userOptional = userRepo.findById(id);
         return userOptional.orElse(null); // Trả về user nếu tìm thấy, nếu không trả về null
+    }
+
+    public String getEmailByUserId(Integer userId) {
+        User user = userRepo.findById(userId).orElse(null);
+        return (user != null) ? user.getEmail() : null;
     }
 
     @Override
@@ -149,22 +160,6 @@ public class UserServiceImpl implements UserService{
 
 
 
-
-
-
-//    @Override
-//    public void editUser(Integer id, StaffDTO staffDTO) {
-//        User user = userRepo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên."));
-//        user.setFullName(staffDTO.getFullName());
-//        user.setEmail(staffDTO.getEmail());
-//        user.setPhone(staffDTO.getPhone());
-//        user.setPassword(staffDTO.getPassword());
-//        // Lấy đối tượng Authority từ tên quyền
-//        Authority authority = authorityRepo.findByName(staffDTO.getRole());
-//        //user.setAuthority(authority);
-//        userRepo.save(user);
-//    }
-
     @Override
     public void lockUser(Integer id) {
 //        User user = userRepo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên."));
@@ -198,18 +193,31 @@ public class UserServiceImpl implements UserService{
         roleUserRepo.save(roleUser); // Lưu Role_User
     }
 
-    // Lấy tất cả người dùng với các role của họ
-    public List<UserDTO> getAllUsersWithRoles() {
-        List<User> users = userRepo.findAll();
+//    // Lấy tất cả người dùng với các role của họ
+//    public List<UserDTO> getAllUsersWithRoles() {
+//        List<User> users = userRepo.findAll();
+//
+//        // Chuyển từ User entity sang UserDTO
+//        return users.stream().map(user -> {
+//            Set<String> roleNames = user.getRoles().stream()
+//                    .map(roleUser -> roleUser.getRole().getName())
+//                    .collect(Collectors.toSet());
+//            return new UserDTO(user.getId(), user.getFullName(), user.getBirthDay(), user.getPhone(), user.getEmail(), user.getStatus(), roleNames, user.getCreatedAt(), user.getUpdatedAt());
+//        }).collect(Collectors.toList());
+//    }
+
+    public Page<UserDTO> getAllUsersWithRoles(Pageable pageable) {
+        Page<User> users = userRepo.findAll(pageable);
 
         // Chuyển từ User entity sang UserDTO
-        return users.stream().map(user -> {
+        return users.map(user -> {
             Set<String> roleNames = user.getRoles().stream()
                     .map(roleUser -> roleUser.getRole().getName())
                     .collect(Collectors.toSet());
-            return new UserDTO(user.getId(), user.getFullName(), user.getPhone(), user.getEmail(), user.getStatus(), roleNames, user.getCreatedAt(), user.getUpdatedAt());
-        }).collect(Collectors.toList());
+            return new UserDTO(user.getId(), user.getFullName(), user.getBirthDay(), user.getPhone(), user.getEmail(), user.getStatus(), roleNames, user.getCreatedAt(), user.getUpdatedAt());
+        });
     }
+
 
 
 
@@ -224,6 +232,72 @@ public class UserServiceImpl implements UserService{
                         .anyMatch(roleUser -> roleUser.getRole().getName().equals(roleName)))
                 .map(UserDTO::fromUser) // Chuyển thành DTO
                 .collect(Collectors.toList());
+    }
+
+
+//    public List<User> searchUsers(String fullName, String phone) {
+//        List<User> users = userRepo.findUserByFullNameOrPhone(fullName, phone);
+//        if (users.isEmpty()) {
+//            System.out.println("Không tìm thấy người dùng với tên: " + fullName + " và phone: " + phone);
+//        }
+//
+//        return users;
+//    }
+
+    public List<User> searchUsers(String fullName, String phone) {
+        if (fullName != null && !fullName.isEmpty() && phone != null && !phone.isEmpty()) {
+            // Tìm kiếm khi cả tên và số điện thoại đều có giá trị
+            return userRepo.findByFullNameContainingOrPhoneContaining(fullName, phone);
+        } else if (fullName != null && !fullName.isEmpty()) {
+            // Tìm kiếm khi chỉ có tên
+            return userRepo.findByFullNameContaining(fullName);
+        } else if (phone != null && !phone.isEmpty()) {
+            // Tìm kiếm khi chỉ có số điện thoại
+            return userRepo.findByPhoneContaining(phone);
+        }
+
+        // Nếu không có thông tin tìm kiếm nào thì trả về danh sách trống hoặc tất cả người dùng
+        return new ArrayList<>();
+    }
+
+
+
+
+//    public boolean changePassword(String oldPassword, String newPassword) {
+//        // Giả sử bạn có phương thức để lấy thông tin người dùng từ database
+//        User user = getCurrentUser(); // Bạn cần phương thức để lấy người dùng hiện tại (ví dụ: từ session hoặc JWT token)
+//
+//        // Kiểm tra mật khẩu cũ
+//        if (passwordEncoder.matches(oldPassword, user.getPassword())) {
+//            // Nếu mật khẩu cũ đúng, mã hóa mật khẩu mới
+//            String encodedNewPassword = passwordEncoder.encode(newPassword);
+//            user.setPassword(encodedNewPassword);
+//
+//            // Lưu mật khẩu mới vào cơ sở dữ liệu
+//            userRepository.save(user);
+//            return true;
+//        }
+//        // Trả về false nếu mật khẩu cũ không đúng
+//        return false;
+//    }
+
+    public void changePassword(Integer userId, String oldPassword, String newPassword) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("Old password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepo.save(user);
+    }
+
+    public User updateUpdatedAt(Integer userId) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User không tồn tại với ID: " + userId));
+        user.setUpdatedAt(LocalDateTime.now());
+        return userRepo.save(user);
     }
 
 
