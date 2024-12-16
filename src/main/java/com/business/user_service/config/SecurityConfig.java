@@ -32,7 +32,9 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                                .requestMatchers("/api/users/admins/total-api-calls").permitAll()
                                 .requestMatchers("/api/users/endpoints").permitAll() //cho tất cả người dùng
+                                .requestMatchers("/api/users/create-guest").permitAll() //(mới)
                         .requestMatchers("/api/users/login").permitAll() //cho tất cả người dùng
                         .requestMatchers("/api/users/{id}/logout").permitAll() //cho tất cả người dùng
                                 .requestMatchers("/api/users/{id}").permitAll() //cho tất cả người dùng
@@ -49,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/admins/total-users").hasAuthority("ADMIN") // đếm số user
                         .requestMatchers("/api/users/admins/total-api-calls").hasAuthority("ADMIN") // đếm số api đc gọi
                         .requestMatchers("/api/users/admins/managers/add").hasAuthority("ADMIN")
+                                .requestMatchers("/api/users/admins/managers/update/{id}").hasAuthority("ADMIN")
                         .requestMatchers("/api/users/admins/roles/all").hasAuthority("ADMIN")
                         .requestMatchers("/api/users/admins/permissions/all").hasAuthority("ADMIN")
                         .requestMatchers("/api/users/admins/permissions/add").hasAuthority("ADMIN")
@@ -59,16 +62,20 @@ public class SecurityConfig {
                                 .requestMatchers("/api/users/admins/managers/unlock/{id}").hasAuthority("ADMIN")
 
                                 .requestMatchers("/api/users/managers/customers/all").hasAuthority("MANAGER")
+                                .requestMatchers("/api/users/managers/customers/pages/all").hasAuthority("MANAGER")
                                 .requestMatchers("/api/users/managers/staffs/all").hasAuthority("MANAGER")
+                                .requestMatchers("/api/users/managers/staffs/pages/all").hasAuthority("MANAGER")
                                 .requestMatchers("/api/users/managers/staffs/add").hasAuthority("MANAGER")
                                 .requestMatchers("/api/users/managers/staffs/lock/{id}").hasAuthority("MANAGER")
                                 .requestMatchers("/api/users/managers/staffs/unlock/{id}").hasAuthority("MANAGER")
+                                .requestMatchers("/api/users/managers/staffs/update/{id}").hasAuthority("MANAGER")
 //                        .requestMatchers("/api/users/admins/register").permitAll()
                         .requestMatchers("/api/users/customers/register").permitAll()
-//                        .requestMatchers("/api/users/staffs/add").permitAll()
-//                        .requestMatchers("/api/users/staffs/lock/{id}").permitAll()
-//                        .requestMatchers("/api/users/staffs/unlock/{id}").permitAll()
-//                        .requestMatchers("/api/users/staffs/update/{id}").permitAll()
+                                .requestMatchers("/api/users/admins/active/count").permitAll()
+                                .requestMatchers("/api/users/admins/in_active/count").permitAll()
+                                .requestMatchers("/api/users/admins/lock/count").permitAll()
+                                .requestMatchers("/api/users/admins/guest/count").permitAll()
+
                         .anyRequest().authenticated()
                 );
 

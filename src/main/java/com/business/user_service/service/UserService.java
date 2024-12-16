@@ -15,6 +15,9 @@ public interface UserService {
     // Lưu người dùng vào cơ sở dữ liệu
     User save(User user);
 
+    //lưu tk của khách vãng lai (mới)
+    User createTemporaryUser(String fullName, String phone);
+
     User findByPhone(String phone);
 
     void saveUser(User user);
@@ -64,4 +67,12 @@ public interface UserService {
 void changePassword(Integer userId, String oldPassword, String newPassword);
 
     User updateUpdatedAt(Integer id);
+
+    Page<UserDTO> getUsersByRoleName(String roleName, int page, int size);
+
+    User updateManager(Integer id, ManagerDTO managerDTO) throws Exception;
+
+//    User updateUser(Integer id, User updatedUser);
+
+//    List<User> getActiveUsers();
 }

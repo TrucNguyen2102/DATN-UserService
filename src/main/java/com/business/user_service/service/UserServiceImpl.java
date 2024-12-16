@@ -10,16 +10,16 @@ import com.business.user_service.repository.RoleUserRepo;
 import com.business.user_service.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +44,50 @@ public class UserServiceImpl implements UserService{
     // Lưu người dùng vào cơ sở dữ liệu
     public User save(User user) {
         return userRepo.save(user);
+    }
+
+    //lưu tk của khách vãng lai (mới)
+    public User createTemporaryUser(String fullName, String phone) {
+        if (fullName == null || fullName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên đầy đủ không được để trống.");
+        }
+        if (phone == null || phone.trim().isEmpty()) {
+            throw new IllegalArgumentException("Số điện thoại không được để trống.");
+        }
+
+        // Tìm Role "GUEST"
+        Role guestRole = roleRepo.findByName("GUEST");
+
+        if (guestRole == null) {
+            throw new IllegalStateException("Role 'GUEST' không tồn tại.");
+        }
+
+        // Tạo User
+        User newUser = new User();
+        newUser.setFullName(fullName);
+        newUser.setPhone(phone);
+        newUser.setBirthDay(null);
+        newUser.setEmail("");  // Không cần thiết cho khách vãng lai
+        newUser.setPassword("");  // Không cần thiết cho khách vãng lai
+        newUser.setStatus(UserStatus.GUEST);
+        newUser.setCreatedAt(LocalDateTime.now());
+        newUser.setUpdatedAt(LocalDateTime.now());
+
+
+        // Lưu User vào bảng User
+        newUser = userRepo.save(newUser);
+
+        // Tạo mối quan hệ giữa User và Role 'GUEST' trong bảng UserRole
+        Role_User userRole = new Role_User();
+        RoleUserId roleUserId = new RoleUserId(newUser.getId(), guestRole.getId()); // Tạo composite key
+        userRole.setId(roleUserId); // Gán composite key
+        userRole.setUser(newUser); // Gán user
+        userRole.setRole(guestRole); // Gán role
+
+        // Lưu mối quan hệ vào bảng UserRole
+        roleUserRepo.save(userRole);
+
+        return newUser;
     }
 
     @Override
@@ -100,6 +144,7 @@ public class UserServiceImpl implements UserService{
     public void addStaff(StaffDTO staffDTO) {
         User user = new User();
         user.setFullName(staffDTO.getFullName());
+        user.setBirthDay(staffDTO.getBirthDay());
         user.setPhone(staffDTO.getPhone());
         user.setEmail(staffDTO.getEmail());
 
@@ -129,8 +174,19 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public void addManager(ManagerDTO managerDTO) {
+        // Kiểm tra số điện thoại đã tồn tại
+        if (userRepo.existsByPhone(managerDTO.getPhone())) {
+            throw new IllegalArgumentException("Số điện thoại đã tồn tại: " + managerDTO.getPhone());
+        }
+
+        // Kiểm tra email đã tồn tại
+//        if (userRepo.existsByEmail(managerDTO.getEmail())) {
+//            throw new IllegalArgumentException("Email đã tồn tại: " + managerDTO.getEmail());
+//        }
+
         User user = new User();
         user.setFullName(managerDTO.getFullName());
+        user.setBirthDay(managerDTO.getBirthDay());
         user.setPhone(managerDTO.getPhone());
         user.setEmail(managerDTO.getEmail());
 
@@ -299,6 +355,153 @@ public class UserServiceImpl implements UserService{
         user.setUpdatedAt(LocalDateTime.now());
         return userRepo.save(user);
     }
+
+    public Page<UserDTO> getUsersByRoleName(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> usersPage = userRepo.findUsersByRoleName(name, pageable);
+
+        // Chuyển đổi từ User sang UserDTO
+        Page<UserDTO> userDTOs = usersPage.map(user -> UserDTO.fromUser(user)); // Sử dụng phương thức fromUser để chuyển đổi
+        return userDTOs;
+    }
+
+//    public List<User> getActiveUsers() {
+//        return userRepo.findByStatus(UserStatus.ACTIVE);
+//    }
+
+//    @Transactional
+//    public User updateManager(Integer id, ManagerDTO managerDTO) throws Exception {
+//        // Tìm người quản lý theo id
+//        Optional<User> existingManager = userRepo.findById(id);
+//
+//        if (existingManager.isEmpty()) {
+//            throw new Exception("Quản lý không tồn tại.");
+//        }
+//
+//        User manager = existingManager.get();
+//
+//        // Nếu có gửi đầy đủ thông tin (cho việc thêm mới), cập nhật chúng
+//        if (managerDTO.getFullName() != null) {
+//            manager.setFullName(managerDTO.getFullName());
+//        }
+//        if (managerDTO.getBirthDay() != null) {
+//            manager.setBirthDay(managerDTO.getBirthDay());
+//        }
+//        if (managerDTO.getEmail() != null) {
+//            manager.setEmail(managerDTO.getEmail());
+//        }
+//        if (managerDTO.getPhone() != null) {
+//            manager.setPhone(managerDTO.getPhone());
+//        }
+//
+//        // Cập nhật vai trò nếu có
+//        if (managerDTO.getRole() != null) {
+//            // Lấy vai trò cũ (nếu có) của người quản lý
+//            Set<Role_User> currentRoles = roleUserRepo.findAllByUserId(manager.getId());
+//
+//            // Kiểm tra nếu người quản lý có vai trò
+//            if (currentRoles != null && !currentRoles.isEmpty()) {
+//                // Lấy vai trò mới từ cơ sở dữ liệu
+//                Role newRole = roleRepo.findByName(managerDTO.getRole());
+//                if (newRole == null) {
+//                    throw new Exception("Vai trò không tồn tại.");
+//                }
+//
+//                // Cập nhật vai trò cũ thành vai trò mới
+//                for (Role_User roleUser : currentRoles) {
+//                    roleUser.setRole(newRole);  // Cập nhật vai trò
+//                    roleUserRepo.save(roleUser);  // Lưu cập nhật
+//                }
+//            } else {
+//                // Nếu không có vai trò cũ, tạo mới vai trò cho người quản lý
+//                Role newRole = roleRepo.findByName(managerDTO.getRole());
+//                if (newRole == null) {
+//                    throw new Exception("Vai trò không tồn tại.");
+//                }
+//
+//                // Gán vai trò mới cho người quản lý
+//                Role_User newRoleUser = new Role_User(newRole, manager);
+//                roleUserRepo.save(newRoleUser);
+//            }
+//        }
+//
+//        // Cập nhật trạng thái nếu có (Nếu không có, vẫn giữ nguyên trạng thái cũ)
+//        if (managerDTO.getStatus() != null) {
+//            manager.setStatus(UserStatus.valueOf(managerDTO.getStatus()));
+//        }
+//
+//        // Lưu lại người quản lý đã cập nhật
+//        return userRepo.save(manager);
+//    }
+
+
+
+    @Transactional
+    public User updateManager(Integer id, ManagerDTO managerDTO) throws Exception {
+        // Tìm người quản lý theo id
+        Optional<User> existingManager = userRepo.findById(id);
+
+        if (existingManager.isEmpty()) {
+            throw new Exception("Quản lý không tồn tại.");
+        }
+
+        User manager = existingManager.get();
+
+        // Nếu có gửi đầy đủ thông tin (cho việc thêm mới), cập nhật chúng
+        if (managerDTO.getFullName() != null) {
+            manager.setFullName(managerDTO.getFullName());
+        }
+        if (managerDTO.getBirthDay() != null) {
+            manager.setBirthDay(managerDTO.getBirthDay());
+        }
+        if (managerDTO.getEmail() != null) {
+            manager.setEmail(managerDTO.getEmail());
+        }
+        if (managerDTO.getPhone() != null) {
+            manager.setPhone(managerDTO.getPhone());
+        }
+
+        // Cập nhật vai trò nếu có
+        if (managerDTO.getRole() != null) {
+            // Lấy tất cả các vai trò hiện tại của người quản lý theo userId
+            Set<Role_User> currentRoles = roleUserRepo.findAllByUserId(manager.getId());
+
+            // Kiểm tra và xóa vai trò cũ
+            if (currentRoles != null && !currentRoles.isEmpty()) {
+                // Xóa các vai trò cũ theo cách thủ công, thay vì sử dụng deleteAll
+                for (Role_User roleUser : currentRoles) {
+                    roleUserRepo.delete(roleUser); // Xóa từng vai trò cũ
+                }
+            }
+
+            // Tạo vai trò mới
+            Role newRole = roleRepo.findByName(managerDTO.getRole());
+            if (newRole == null) {
+                throw new Exception("Vai trò không tồn tại.");
+            }
+
+            // Tạo và lưu vai trò mới cho người quản lý
+            Role_User newRoleUser = new Role_User(newRole, manager);
+            roleUserRepo.save(newRoleUser); // Lưu vai trò mới
+
+
+        }
+
+        // Cập nhật trạng thái nếu có
+        if (managerDTO.getStatus() != null) {
+            manager.setStatus(UserStatus.valueOf(managerDTO.getStatus()));
+        }
+
+        // Lưu lại người quản lý đã cập nhật
+        return userRepo.save(manager);
+    }
+
+
+
+
+
+
+
 
 
 }

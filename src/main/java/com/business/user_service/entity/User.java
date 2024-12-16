@@ -18,14 +18,14 @@ public class User {
     @Column(name = "id")
     private Integer id;
 
-    @Column(name = "full_name", length = 50, nullable = false)
+    @Column(name = "full_name", length = 50)
     private String fullName;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     @Column(name = "birthday")
     private LocalDate birthDay;
 
-    @Column(name = "phone", length = 12, nullable = false)
+    @Column(name = "phone", length = 12)
     private String phone;
 
     @Column(name = "email")

@@ -4,7 +4,8 @@ public enum UserStatus {
     ACTIVE, //ĐANG HOẠT ĐỘNG
     INACTIVE, //ĐÃ ĐĂNG XUẤT
     BLOCKED, //ĐÃ KHÓA
-    OPENED //ĐÃ MỞ
+    OPENED, //ĐÃ MỞ
+    GUEST //KHÁCH VÃNG LAI
 
 //    private final String description;
 //

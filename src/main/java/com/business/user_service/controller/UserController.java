@@ -23,6 +23,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -30,6 +31,8 @@ import java.util.stream.Collectors;
 public class UserController {
     @Autowired
     private UserService userService;
+
+
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -49,6 +52,7 @@ public class UserController {
     @GetMapping("/endpoints")
     public List<Map<String, String>> getEndpoints() {
         return List.of(
+                Map.of("service", "user-service", "method", "POST", "url", "/api/users/create-guest"),
                 Map.of("service", "user-service", "method", "POST", "url", "/api/users/login"),
                 Map.of("service", "user-service", "method", "GET", "url", "/api/users/all"),
                 Map.of("service", "user-service", "method", "PUT", "url", "/api/users/{id}/logout"),
@@ -65,7 +69,11 @@ public class UserController {
                 Map.of("service", "user-service", "method", "GET", "url", "/api/users/managers/customers/all "),
                 Map.of("service", "user-service", "method", "GET", "url", "/api/users/managers/staffs/all "),
                 Map.of("service", "user-service", "method", "PUT", "url", "/api/users/managers/staffs/lock/{id}"),
-                Map.of("service", "user-service", "method", "PUT", "url", "/api/users/managers/staffs/unlock/{id}")
+                Map.of("service", "user-service", "method", "PUT", "url", "/api/users/managers/staffs/unlock/{id}"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/admins/active/count"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/admins/in_active/count"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/admins/lock/count"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/admins/guest/count")
 
 
 
@@ -74,21 +82,58 @@ public class UserController {
         );
     }
 
+    //tạo tk khách vãng lai (mới)
+    @PostMapping("/create-guest")
+    public ResponseEntity<Integer> createTemporaryUser(@RequestBody GuestUserRequest request) {
+        try {
+            User newUser = userService.createTemporaryUser(request.getFullName(), request.getPhone());
+            return ResponseEntity.ok(newUser.getId());  // Trả về chỉ ID của User
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+    }
+
+
     //api sd
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody AuthenticationRequest request) {
         try {
 
+            // Tăng số lượng API gọi
+//            userServiceApiCallService.incrementApiCallCount();
+
+            // Tìm người dùng theo số điện thoại
+//            User user = userService.findByPhone(request.getPhone());
+//            if (user == null) {
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Thông tin đăng nhập không chính xác.");
+//            }
+
             // Tìm người dùng theo số điện thoại
             User user = userService.findByPhone(request.getPhone());
             if (user == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Thông tin đăng nhập không chính xác.");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tài khoản của bạn chưa tồn tại trong hệ thống.");
+            }
+
+
+            // Kiểm tra xem người dùng có mật khẩu không
+            if (user.getPassword() == null || user.getPassword().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tài khoản của bạn chưa tồn tại trong hệ thống.");
             }
 
             // Kiểm tra trạng thái tài khoản
             if (user.getStatus() == UserStatus.BLOCKED) { // Kiểm tra trạng thái
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Tài khoản đã bị khóa.");
             }
+
+            // Kiểm tra xem người dùng có vai trò GUEST không
+            if (UserStatus.GUEST.equals(user.getStatus())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền truy cập.");
+            }
+
+
+
             // Xác thực người dùng bằng số điện thoại và mật khẩu
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getPhone(), request.getPassword()));
@@ -190,34 +235,10 @@ public class UserController {
     }
 
 
-//    @GetMapping("/all")
-//
-//    public ResponseEntity<List<UserDTO>> getAllUsers() {
-//        try {
-//            List<UserDTO> users = userService.getAllUsersWithRoles();
-//            return ResponseEntity.ok(users);
-//        }catch (Exception e) {
-//            e.printStackTrace();
-//            return ResponseEntity.badRequest().build();
-//        }
-//
-//    }
-
-//    @GetMapping("/all")
-//    public ResponseEntity<Page<UserDTO>> getAllUsers(Pageable pageable) {
-//        try {
-//            Page<UserDTO> users = userService.getAllUsersWithRoles(pageable);
-//            return ResponseEntity.ok(users);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return ResponseEntity.badRequest().build();
-//        }
-//    }
-
     @GetMapping("/all")
     public ResponseEntity<Page<UserDTO>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "5") int size) {
 
         try {
             Pageable pageable = PageRequest.of(page, size);
@@ -247,6 +268,8 @@ public class UserController {
         }
 
     }
+
+
 
     // API cập nhật thông tin người dùng
     @PutMapping("/update/{userId}")
@@ -278,16 +301,7 @@ public class UserController {
         }
     }
 
-//    @PutMapping("/users/change-password/{userId}")
-//    public ResponseEntity<String> changePassword(@PathVariable Integer userId, @RequestBody PasswordChangeRequest passwordChangeRequest) {
-//        try {
-//            userService.changePassword(userId, passwordChangeRequest.getOldPassword(), passwordChangeRequest.getNewPassword());
-//            return ResponseEntity.ok("Password changed successfully");
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to change password");
-//        }
-//    }
+
 
     @PutMapping("/change-password/{userId}")
     public ResponseEntity<?> changePassword(
@@ -323,6 +337,7 @@ public class UserController {
         if (staffDTO.getRole() == null) {
             return ResponseEntity.badRequest().body("Quyền không hợp lệ.");
         }
+
         try {
             userService.addStaff(staffDTO);
             return ResponseEntity.ok("Nhân viên đã được thêm thành công.");
@@ -335,6 +350,15 @@ public class UserController {
     @GetMapping("/managers/staffs/all")
     public List<UserDTO> getStaffUsers() {
         return userService.getUsersByRole("STAFF");
+    }
+
+    @GetMapping("/managers/staffs/pages/all")
+    public ResponseEntity<Page<UserDTO>> getStaffsByRoleName(
+//            @PathVariable String roleName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        Page<UserDTO> users = userService.getUsersByRoleName("STAFF", page, size);
+        return ResponseEntity.ok(users);
     }
 
 
@@ -364,114 +388,166 @@ public class UserController {
     }
 
 
-//    @PostMapping("/admin/register")
-//    @PreAuthorize("hasAuthority('ADMIN')") // Chỉ cho phép admin thực hiện
-//    public ResponseEntity<?> registerOwner(@RequestBody RegisterRequest request) {
-//        // Kiểm tra mật khẩu
-//        if (!request.getPassword().equals(request.getConfirmPassword())) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu không khớp.");
-//        }
-//
-//        // Kiểm tra số điện thoại đã tồn tại
-//        if (userService.existsByPhone(request.getPhone())) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
-//        }
-//
-//        // Kiểm tra email đã tồn tại
-//        if (userService.existsByEmail(request.getEmail())) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email đã được sử dụng.");
-//        }
-//
-//        // Tạo đối tượng User
-//        User user = new User();
-//        user.setFullName(request.getFullName());
-//        user.setPhone(request.getPhone());
-//        user.setEmail(request.getEmail());
-//        user.setPassword(passwordEncoder.encode(request.getPassword()));
-//        user.setUpdatedAt(LocalDateTime.now());
-//        user.setUpdatedAt(LocalDateTime.now());
-//
-//        // Thiết lập quyền cho owner
-//        Authority authority = authorityService.findByName("OWNER");
-//        if (authority == null) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quyền OWNER không tồn tại.");
-//        }
-//        //user.setAuthority(authority);
-//
-//        // Lưu người dùng
-//        userService.saveUser(user);
-//        return ResponseEntity.ok("Tài khoản owner đã được tạo thành công!");
-//    }
-
-//    @PostMapping("/customer/register")
-//    @PreAuthorize("hasAuthority('CUSTOMER')") // Chỉ cho phép admin thực hiện
-//    public ResponseEntity<?> registerCustomer(@RequestBody RegisterRequest request) {
-//        // Kiểm tra mật khẩu
-//        if (!request.getPassword().equals(request.getConfirmPassword())) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu không khớp.");
-//        }
-//
-//        // Kiểm tra số điện thoại đã tồn tại
-//        if (userService.existsByPhone(request.getPhone())) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
-//        }
-//
-//        // Kiểm tra email đã tồn tại
-//        if (userService.existsByEmail(request.getEmail())) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email đã được sử dụng.");
-//        }
-//
-//        // Tạo đối tượng User
-//        User user = new User();
-//        user.setFullName(request.getFullName());
-//        user.setPhone(request.getPhone());
-//        user.setEmail(request.getEmail());
-//        user.setPassword(passwordEncoder.encode(request.getPassword()));
-//        user.setUpdatedAt(LocalDateTime.now());
-//        user.setUpdatedAt(LocalDateTime.now());
-//
-//        // Thiết lập quyền cho customer
-//        Authority authority = authorityService.findByName("CUSTOMER");
-//        if (authority == null) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quyền CUSTOMER không tồn tại.");
-//        }
-//        //user.setAuthority(authority);
-//
-//        // Lưu người dùng
-//        userService.saveUser(user);
-//        return ResponseEntity.ok("Tài khoản customer đã được tạo thành công!");
-//    }
-
-//    @GetMapping("/all")
-//    public ResponseEntity<List<User>> getAllUsers() {
+//    @PostMapping("/customers/register")
+//    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
 //        try {
-//            List<User> users = userService.getAllUsers();
-//            return ResponseEntity.ok(users); // Trả về danh sách người dùng kèm roles dưới dạng JSON
-//        }catch (Exception e) {
+//
+//            // khi nhân viên hỗ trợ
+//            // Kiểm tra xem User  đã tồn tại qua số điện thoại
+//            Optional<User> existingUser = Optional.ofNullable(userService.findByPhone(request.getPhone()));
+//
+//            if (existingUser.isPresent()) {
+//                User user = existingUser.get();
+//
+//                // Nếu User tồn tại và có status là GUEST
+//                if (UserStatus.GUEST.equals(user.getStatus())) {
+//                    // Cập nhật thông tin User
+//                    user.setFullName(request.getFullName());
+//                    user.setBirthDay(request.getBirthDay());
+//                    user.setEmail(request.getEmail());
+//
+//                    // Mã hóa mật khẩu
+//                    PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+//                    String encodedPassword = passwordEncoder.encode(request.getPassword());
+//                    user.setPassword(encodedPassword);
+//
+//                    // Cập nhật trạng thái thành ACTIVE
+//                    user.setStatus(UserStatus.ACTIVE);
+//                    user.setCreatedAt(LocalDateTime.now());
+//                    user.setUpdatedAt(LocalDateTime.now());
+//
+//                    userService.saveUser(user); // Lưu thay đổi vào database
+//
+//                    // Kiểm tra vai trò CUSTOMER, gán lại nếu chưa có
+//                    Role customerRole = roleRepo.findByName("CUSTOMER");
+//                    if (customerRole == null) {
+//                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Vai trò CUSTOMER không tồn tại.");
+//                    }
+//
+//                    Role_User roleUser = roleUserRepo.findByUserId(user.getId())
+//                            .orElseGet(() -> new Role_User(customerRole, user));
+//                    roleUser.setRole(customerRole);
+//                    roleUserRepo.save(roleUser);
+//
+//                    return ResponseEntity.ok("Cập nhật tài khoản GUEST thành công!");
+//                }
+//
+//                // Nếu User tồn tại nhưng không phải GUEST
+//                return ResponseEntity.status(HttpStatus.CONFLICT)
+//                        .body("Số điện thoại đã được sử dụng bởi người dùng khác.");
+//            }
+//
+//
+//
+//            // Nếu User không tồn tại, kiểm tra và tạo mới
+//            if (userService.existsByPhone(request.getPhone())) {
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
+//            }
+//
+//            // Tạo đối tượng User
+//            User user = new User();
+//            user.setFullName(request.getFullName());
+//            user.setBirthDay(request.getBirthDay());
+//            user.setPhone(request.getPhone());
+//            user.setEmail(request.getEmail());
+//
+//            // Mã hóa mật khẩu
+//            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+//            String encodedPassword = passwordEncoder.encode(request.getPassword());
+//            user.setPassword(encodedPassword);
+//
+//            user.setStatus(UserStatus.ACTIVE);
+//
+//            user.setCreatedAt(LocalDateTime.now());
+//            user.setUpdatedAt(LocalDateTime.now());
+//
+//
+//            // Lấy đối tượng Role từ tên vai trò
+//            Role customerRole  = roleRepo.findByName("CUSTOMER");
+//
+//            if (customerRole  == null) {
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Vai trò CUSTOMER không tồn tại.");
+//
+//            }
+//
+//            // Lưu User vào cơ sở dữ liệu
+//            userService.saveUser(user);
+//
+//
+//            // Lưu vào bảng Role_User để gán role "CUSTOMER" cho user mới
+//            Role_User roleUser = new Role_User(customerRole, user);
+//            roleUserRepo.save(roleUser);
+//            return ResponseEntity.ok("Tài khoản customer đã được tạo thành công!");
+//
+//
+//        } catch (Exception e) {
 //            e.printStackTrace();
-//            return ResponseEntity.badRequest().build();
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đã có lỗi xảy ra.");
 //        }
 //
 //    }
-
-
 
     @PostMapping("/customers/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
         try {
-            //        // Kiểm tra mật khẩu có khớp không
-//        if (!request.getPassword().equals(request.getConfirmPassword())) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu không khớp.");
-//        }
 
-            // Kiểm tra số điện thoại đã tồn tại
-            if (userService.existsByPhone(request.getPhone())) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
+            // Kiểm tra xem User đã tồn tại qua số điện thoại
+            Optional<User> existingUser = Optional.ofNullable(userService.findByPhone(request.getPhone()));
+
+            if (existingUser.isPresent()) {
+                User user = existingUser.get();
+
+                // Kiểm tra xem user có vai trò GUEST không
+                Role_User roleUser = roleUserRepo.findByUserId(user.getId())
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy vai trò người dùng"));
+
+                if (roleUser.getRole().getName().equals("GUEST")) {
+                    // Nếu là GUEST, cập nhật thông tin và vai trò thành CUSTOMER
+
+                    // Cập nhật thông tin User
+                    user.setFullName(request.getFullName());
+                    user.setBirthDay(request.getBirthDay());
+                    user.setEmail(request.getEmail());
+
+                    // Mã hóa mật khẩu
+                    PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+                    String encodedPassword = passwordEncoder.encode(request.getPassword());
+                    user.setPassword(encodedPassword);
+
+                    // Cập nhật trạng thái thành ACTIVE
+                    user.setStatus(UserStatus.ACTIVE);
+                    user.setCreatedAt(LocalDateTime.now());
+                    user.setUpdatedAt(LocalDateTime.now());
+
+                    // Lưu thay đổi vào database
+                    userService.saveUser(user);
+
+                    // Cập nhật vai trò thành CUSTOMER
+                    Role customerRole = roleRepo.findByName("CUSTOMER");
+                    if (customerRole == null) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Vai trò CUSTOMER không tồn tại.");
+                    }
+
+                    // Xóa vai trò cũ và tạo vai trò mới cho user
+                    roleUserRepo.delete(roleUser);  // Xóa vai trò GUEST cũ
+                    Role_User newRoleUser = new Role_User(customerRole, user);  // Tạo vai trò mới
+                    roleUserRepo.save(newRoleUser);  // Lưu vai trò mới
+
+                    // Cập nhật lại vai trò của user
+                    roleUser.setRole(customerRole);
+                    roleUserRepo.save(roleUser);
+
+                    return ResponseEntity.ok("Cập nhật vai trò từ GUEST thành CUSTOMER thành công!");
+                }
+
+                // Nếu User tồn tại nhưng không phải GUEST
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("Số điện thoại đã được sử dụng bởi người dùng khác.");
             }
 
-            // Kiểm tra email đã tồn tại
-            if (userService.existsByEmail(request.getEmail())) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email đã được sử dụng.");
+            // Nếu User không tồn tại, kiểm tra và tạo mới
+            if (userService.existsByPhone(request.getPhone())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Số điện thoại đã được sử dụng.");
             }
 
             // Tạo đối tượng User
@@ -486,35 +562,31 @@ public class UserController {
             String encodedPassword = passwordEncoder.encode(request.getPassword());
             user.setPassword(encodedPassword);
 
+            // Cập nhật trạng thái thành ACTIVE
             user.setStatus(UserStatus.ACTIVE);
-
             user.setCreatedAt(LocalDateTime.now());
             user.setUpdatedAt(LocalDateTime.now());
 
-
             // Lấy đối tượng Role từ tên vai trò
-            Role customerRole  = roleRepo.findByName("CUSTOMER");
+            Role customerRole = roleRepo.findByName("CUSTOMER");
 
-            if (customerRole  == null) {
+            if (customerRole == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Vai trò CUSTOMER không tồn tại.");
-
             }
 
             // Lưu User vào cơ sở dữ liệu
             userService.saveUser(user);
 
-
             // Lưu vào bảng Role_User để gán role "CUSTOMER" cho user mới
             Role_User roleUser = new Role_User(customerRole, user);
             roleUserRepo.save(roleUser);
-            return ResponseEntity.ok("Tài khoản customer đã được tạo thành công!");
 
+            return ResponseEntity.ok("Tài khoản customer đã được tạo thành công!");
 
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đã có lỗi xảy ra.");
         }
-
     }
 
 
@@ -526,24 +598,17 @@ public class UserController {
 
 
 
-    @PutMapping("/staffs/update/{id}")
-    public ResponseEntity<User> updateStaff(@PathVariable Integer id, @RequestBody User updatedUser) {
-        // Kiểm tra giá trị id trước khi xử lý
-        if (id == null) {
-            return ResponseEntity.badRequest().build(); // Trả về 400 nếu id không hợp lệ
-        }
 
-        User user = userService.findById(id);
-        if (user != null) {
-            user.setFullName(updatedUser.getFullName());
-            user.setPhone(updatedUser.getPhone());
-            user.setEmail(updatedUser.getEmail());
-           // user.setAuthority(updatedUser.getAuthority());
-            userService.updateUser(user);
-            return ResponseEntity.ok(user);
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-    }
+//    @PutMapping("/managers/staffs/update/{id}")
+//    public ResponseEntity<?> updateManager(@PathVariable Integer id, @RequestBody ManagerDTO managerDTO) {
+//        try {
+//            User user = userService.updateManager(id, managerDTO);
+//            return ResponseEntity.ok(user); // trả về dữ liệu đã cập nhật
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Có lỗi xảy ra khi cập nhật quản lý.");
+//        }
+//    }
 
 //    @GetMapping("/managers/customers/all")
 //    public ResponseEntity<List<User>> getCustomers() {
@@ -562,6 +627,28 @@ public class UserController {
     public List<UserDTO> getCustomerUsers() {
         return userService.getUsersByRole("CUSTOMER");
     }
+
+    @GetMapping("/managers/customers/pages/all")
+    public ResponseEntity<Page<UserDTO>> getUsersByRoleName(
+//            @PathVariable String roleName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        Page<UserDTO> users = userService.getUsersByRoleName("CUSTOMER", page, size);
+        return ResponseEntity.ok(users);
+    }
+
+    // API để lấy danh sách người dùng có trạng thái ACTIVE
+//    @GetMapping("/active")
+//    public ResponseEntity<List<User>> getActiveUsers() {
+//        try {
+//            List<User> activeUsers = userService.getActiveUsers();
+//            return ResponseEntity.ok(activeUsers);
+//        }catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+//        }
+//
+//    }
 
 
 

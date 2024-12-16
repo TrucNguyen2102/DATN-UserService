@@ -1,10 +1,12 @@
 package com.business.user_service.dto;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 public class ManagerDTO {
     private String fullName;
-    private Date birthDay;
+//    private Date birthDay;
+    private LocalDate birthDay;
     private String phone;
     private String email;
 
@@ -16,7 +18,7 @@ public class ManagerDTO {
 
     }
 
-    public ManagerDTO(String fullName, Date birthDay, String phone, String email, String password, String status, String role) {
+    public ManagerDTO(String fullName, LocalDate birthDay, String phone, String email, String password, String status, String role) {
         this.fullName = fullName;
         this.birthDay = birthDay;
         this.phone = phone;
@@ -34,11 +36,11 @@ public class ManagerDTO {
         this.fullName = fullName;
     }
 
-    public Date getBirthDay() {
+    public LocalDate getBirthDay() {
         return birthDay;
     }
 
-    public void setBirthDay(Date birthDay) {
+    public void setBirthDay(LocalDate birthDay) {
         this.birthDay = birthDay;
     }
 
