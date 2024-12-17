@@ -637,6 +637,41 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+
+    @PutMapping("/{userId}/lock")
+    public ResponseEntity<String> lockUserAccount(@PathVariable Integer userId) {
+        try {
+            // Khóa tài khoản và cập nhật updatedAt
+            User user = userService.lockUserAccount(userId);
+            if (user != null) {
+                // Gọi API updateUpdatedAt để cập nhật thời gian khóa
+                userService.updateUpdatedAt(userId);
+                return ResponseEntity.ok("Tài khoản đã bị khóa.");
+            } else {
+                return ResponseEntity.status(404).body("Không tìm thấy người dùng.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Có lỗi xảy ra khi khóa tài khoản.");
+        }
+    }
+
+    // API để mở lại tài khoản sau khi khóa 3 ngày
+    @PutMapping("/{userId}/unlock")
+    public ResponseEntity<String> unlockUserAccount(@PathVariable Integer userId) {
+        try {
+            User user = userService.unlockUserAccountIfExpired(userId);
+            if (user != null && user.getStatus() == UserStatus.OPENED) {
+                return ResponseEntity.ok("Tài khoản đã được mở lại.");
+            } else {
+                return ResponseEntity.status(400).body("Tài khoản không bị khóa hoặc chưa đủ 3 ngày.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Có lỗi xảy ra khi mở lại tài khoản.");
+        }
+    }
+
     // API để lấy danh sách người dùng có trạng thái ACTIVE
 //    @GetMapping("/active")
 //    public ResponseEntity<List<User>> getActiveUsers() {

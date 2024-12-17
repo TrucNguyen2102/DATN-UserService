@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -70,6 +71,7 @@ public class UserServiceImpl implements UserService{
         newUser.setEmail("");  // Không cần thiết cho khách vãng lai
         newUser.setPassword("");  // Không cần thiết cho khách vãng lai
         newUser.setStatus(UserStatus.GUEST);
+//        newUser.setStatus(null);
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
 
@@ -436,65 +438,66 @@ public class UserServiceImpl implements UserService{
 
 
 
-    @Transactional
-    public User updateManager(Integer id, ManagerDTO managerDTO) throws Exception {
-        // Tìm người quản lý theo id
-        Optional<User> existingManager = userRepo.findById(id);
 
-        if (existingManager.isEmpty()) {
-            throw new Exception("Quản lý không tồn tại.");
-        }
+    public boolean updateUserRole(Integer userId, String newRole) {
+        Optional<User> userOpt = userRepo.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
 
-        User manager = existingManager.get();
+            // Tìm role theo tên
+            Role role = roleRepo.findByName(newRole);
+            if (role != null) {
+                // Tạo đối tượng Role_User để lưu quan hệ giữa User và Role
+                Role_User roleUser = new Role_User();
+                roleUser.setUser(user);
+                roleUser.setRole(role);
 
-        // Nếu có gửi đầy đủ thông tin (cho việc thêm mới), cập nhật chúng
-        if (managerDTO.getFullName() != null) {
-            manager.setFullName(managerDTO.getFullName());
-        }
-        if (managerDTO.getBirthDay() != null) {
-            manager.setBirthDay(managerDTO.getBirthDay());
-        }
-        if (managerDTO.getEmail() != null) {
-            manager.setEmail(managerDTO.getEmail());
-        }
-        if (managerDTO.getPhone() != null) {
-            manager.setPhone(managerDTO.getPhone());
-        }
+                // Lưu lại vai trò của người dùng
+                roleUserRepo.save(roleUser);
 
-        // Cập nhật vai trò nếu có
-        if (managerDTO.getRole() != null) {
-            // Lấy tất cả các vai trò hiện tại của người quản lý theo userId
-            Set<Role_User> currentRoles = roleUserRepo.findAllByUserId(manager.getId());
-
-            // Kiểm tra và xóa vai trò cũ
-            if (currentRoles != null && !currentRoles.isEmpty()) {
-                // Xóa các vai trò cũ theo cách thủ công, thay vì sử dụng deleteAll
-                for (Role_User roleUser : currentRoles) {
-                    roleUserRepo.delete(roleUser); // Xóa từng vai trò cũ
-                }
+                return true;
             }
-
-            // Tạo vai trò mới
-            Role newRole = roleRepo.findByName(managerDTO.getRole());
-            if (newRole == null) {
-                throw new Exception("Vai trò không tồn tại.");
-            }
-
-            // Tạo và lưu vai trò mới cho người quản lý
-            Role_User newRoleUser = new Role_User(newRole, manager);
-            roleUserRepo.save(newRoleUser); // Lưu vai trò mới
-
-
         }
-
-        // Cập nhật trạng thái nếu có
-        if (managerDTO.getStatus() != null) {
-            manager.setStatus(UserStatus.valueOf(managerDTO.getStatus()));
-        }
-
-        // Lưu lại người quản lý đã cập nhật
-        return userRepo.save(manager);
+        return false; // Nếu không tìm thấy user hoặc role không hợp lệ
     }
+
+    // Phương thức khóa tài khoản người dùng
+    public User lockUserAccount(Integer userId) {
+        User user = userRepo.findById(userId).orElse(null);
+        if (user != null) {
+            user.setStatus(UserStatus.BLOCKED);  // Cập nhật trạng thái thành BLOCKED
+            // Cập nhật thời gian updateAt để tính thời gian khóa
+            user.setUpdatedAt(LocalDateTime.now());
+            return userRepo.save(user);  // Cập nhật lại người dùng
+        }
+        return null;
+    }
+
+    // Phương thức kiểm tra và mở lại tài khoản sau khi khóa 3 ngày
+    public User unlockUserAccountIfExpired(Integer userId) {
+        User user = userRepo.findById(userId).orElse(null);
+        if (user != null && user.getStatus() == UserStatus.BLOCKED) {
+            // Tính toán thời gian đã khóa bằng cách so sánh với updatedAt
+            Duration duration = Duration.between(user.getUpdatedAt(), LocalDateTime.now());
+            if (duration.toDays() >= 3) {  // Nếu đã qua 3 ngày
+                user.setStatus(UserStatus.OPENED);  // Mở lại tài khoản
+                return userRepo.save(user);  // Cập nhật lại người dùng trong DB
+            }
+        }
+        return user;
+    }
+
+    // Phương thức cập nhật thời gian updatedAt
+//    public User updateUpdatedAt(Integer userId) {
+//        User user = userRepo.findById(userId).orElse(null);
+//        if (user != null) {
+//            user.setUpdatedAt(LocalDateTime.now());
+//            return userRepo.save(user);
+//        }
+//        return null;
+//    }
+
+
 
 
 

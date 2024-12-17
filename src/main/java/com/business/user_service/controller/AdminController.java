@@ -85,17 +85,34 @@ public class AdminController {
         }
     }
 
-    @PutMapping("/admins/managers/update/{id}")
-    public ResponseEntity<?> updateManager(@PathVariable Integer id, @RequestBody ManagerDTO request) {
+//    @PutMapping("/admins/managers/update/{id}")
+//    public ResponseEntity<?> updateManager(@PathVariable Integer id, @RequestBody ManagerDTO request) {
+//        try {
+//            User updatedManager = userService.updateManager(id, request);
+//            return ResponseEntity.ok(updatedManager);
+//        } catch (ResourceNotFoundException ex) {
+//            ex.printStackTrace();
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Manager not found.");
+//        } catch (Exception ex) {
+//            ex.printStackTrace();
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating manager.");
+//        }
+//    }
+
+
+    // Cập nhật vai trò người dùng
+    @PutMapping("/{userId}/role")
+    public ResponseEntity<String> updateUserRole(@PathVariable Integer userId, @RequestBody String newRole) {
         try {
-            User updatedManager = userService.updateManager(id, request);
-            return ResponseEntity.ok(updatedManager);
-        } catch (ResourceNotFoundException ex) {
-            ex.printStackTrace();
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Manager not found.");
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating manager.");
+            boolean isUpdated = userService.updateUserRole(userId, newRole);
+            if (isUpdated) {
+                return ResponseEntity.ok("Cập nhật vai trò thành công.");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể cập nhật vai trò.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Có lỗi xảy ra.");
         }
     }
 

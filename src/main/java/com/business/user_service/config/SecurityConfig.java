@@ -47,7 +47,10 @@ public class SecurityConfig {
                                 .requestMatchers("/api/users/{id}/updateAt").permitAll()
 
 
+                                .requestMatchers("/api/users/{userId}/lock").permitAll()
+                                .requestMatchers("/api/users/{userId}/unlock").permitAll()
                         .requestMatchers("/api/users/all").hasAuthority("ADMIN")// xem ds tất cả user
+                                .requestMatchers("/api/users/{userId}/role").hasAuthority("ADMIN")// xem ds tất cả user
                         .requestMatchers("/api/users/admins/total-users").hasAuthority("ADMIN") // đếm số user
                         .requestMatchers("/api/users/admins/total-api-calls").hasAuthority("ADMIN") // đếm số api đc gọi
                         .requestMatchers("/api/users/admins/managers/add").hasAuthority("ADMIN")

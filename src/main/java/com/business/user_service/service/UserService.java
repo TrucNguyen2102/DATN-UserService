@@ -48,6 +48,9 @@ public interface UserService {
 
     void unlockUser(Integer userId);
 
+    User lockUserAccount(Integer userId);
+    User unlockUserAccountIfExpired(Integer userId);
+
     void saveRoleUser(Role_User roleUser);
 
 //    List<UserDTO> getAllUsersWithRoles();
@@ -70,7 +73,9 @@ void changePassword(Integer userId, String oldPassword, String newPassword);
 
     Page<UserDTO> getUsersByRoleName(String roleName, int page, int size);
 
-    User updateManager(Integer id, ManagerDTO managerDTO) throws Exception;
+    //User updateManager(Integer id, ManagerDTO managerDTO) throws Exception;
+
+    boolean updateUserRole(Integer userId, String newRole);
 
 //    User updateUser(Integer id, User updatedUser);
 

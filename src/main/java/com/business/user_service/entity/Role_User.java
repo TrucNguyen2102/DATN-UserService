@@ -12,12 +12,12 @@ public class Role_User implements Serializable {
     @EmbeddedId
     private RoleUserId id;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     @MapsId("roleId")
     @JoinColumn(name = "role_id")
     private Role role;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     @MapsId("userId")
     @JoinColumn(name = "user_id")
     @JsonBackReference
