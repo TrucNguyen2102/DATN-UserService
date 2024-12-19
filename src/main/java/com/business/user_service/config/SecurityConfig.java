@@ -40,6 +40,7 @@ public class SecurityConfig {
                                 .requestMatchers("/api/users/{id}").permitAll() //cho tất cả người dùng
                                 .requestMatchers("/api/users/fullName").permitAll()
                                 .requestMatchers("/api/users/fullNameUser").permitAll()
+                                .requestMatchers("/api/users/phoneUser").permitAll()
                                 .requestMatchers("/api/users/{id}/email").permitAll()
                                 .requestMatchers("/api/users/search").permitAll() //cho tất cả người dùng
                                 .requestMatchers("/api/users/update/{userId}").permitAll() //cho tất cả người dùng

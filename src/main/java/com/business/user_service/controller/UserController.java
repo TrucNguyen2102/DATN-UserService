@@ -57,6 +57,7 @@ public class UserController {
                 Map.of("service", "user-service", "method", "GET", "url", "/api/users/all"),
                 Map.of("service", "user-service", "method", "PUT", "url", "/api/users/{id}/logout"),
                 Map.of("service", "user-service", "method", "GET", "url", "/api/users/fullNameUser"),
+                Map.of("service", "user-service", "method", "GET", "url", "/api/users/phoneUser"),
                 Map.of("service", "user-service", "method", "GET", "url", "/api/users/{userId}"),
                 Map.of("service", "user-service", "method", "GET", "url", "/api/users/{id}/email"),
                 Map.of("service", "user-service", "method", "PUT", "url", "/api/users/update/{id}"),
@@ -205,6 +206,15 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(user.getFullName());
+    }
+
+    @GetMapping("/phoneUser")
+    public ResponseEntity<String> getUserPhone(@RequestParam Integer userId) {
+        User user = userService.findById(userId);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(user.getPhone());
     }
 
     @GetMapping("/{id}/email")
