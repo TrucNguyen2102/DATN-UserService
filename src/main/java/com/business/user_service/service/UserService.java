@@ -66,6 +66,8 @@ public interface UserService {
     List<User> searchUsers(String fullName, String phone);
 
 
+
+
 //    boolean changePassword(String oldPassword, String newPassword);
 void changePassword(Integer userId, String oldPassword, String newPassword);
 
@@ -76,6 +78,11 @@ void changePassword(Integer userId, String oldPassword, String newPassword);
     //User updateManager(Integer id, ManagerDTO managerDTO) throws Exception;
 
     boolean updateUserRole(Integer userId, String newRole);
+
+    List<User> getBlockedUsers();
+
+    void updateStaff(Integer id, StaffDTO staffDto);
+    void updateManager(Integer id, ManagerDTO managerDTO);
 
 //    User updateUser(Integer id, User updatedUser);
 

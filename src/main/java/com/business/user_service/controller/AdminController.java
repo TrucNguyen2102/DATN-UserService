@@ -85,19 +85,16 @@ public class AdminController {
         }
     }
 
-//    @PutMapping("/admins/managers/update/{id}")
-//    public ResponseEntity<?> updateManager(@PathVariable Integer id, @RequestBody ManagerDTO request) {
-//        try {
-//            User updatedManager = userService.updateManager(id, request);
-//            return ResponseEntity.ok(updatedManager);
-//        } catch (ResourceNotFoundException ex) {
-//            ex.printStackTrace();
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Manager not found.");
-//        } catch (Exception ex) {
-//            ex.printStackTrace();
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating manager.");
-//        }
-//    }
+    @PutMapping("/admins/managers/update/{id}")
+    public ResponseEntity<?> updateStaff(@PathVariable Integer id, @RequestBody ManagerDTO managerDTO) {
+        try {
+            userService.updateManager(id, managerDTO);
+            return ResponseEntity.ok("Cập nhật nhân viên thành công");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Lỗi khi cập nhật nhân viên: " + e.getMessage());
+        }
+    }
 
 
     // Cập nhật vai trò người dùng

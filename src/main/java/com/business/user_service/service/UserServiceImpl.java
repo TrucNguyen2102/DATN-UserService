@@ -461,6 +461,35 @@ public class UserServiceImpl implements UserService{
         return false; // Nếu không tìm thấy user hoặc role không hợp lệ
     }
 
+//    public Page<UserDTO> searchUsers(String fullName, String phone, Pageable pageable) {
+//        return userRepo.findByFullNameContainingOrPhoneContaining(fullName, phone, pageable)
+//                .map(user -> new UserDTO(user));
+//    }
+
+
+    //phương thức cập nhật thông tin nhân viên
+    public void updateStaff(Integer id, StaffDTO staffDto) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên với ID: " + id));
+
+        user.setFullName(staffDto.getFullName());
+        user.setBirthDay(staffDto.getBirthDay());
+        user.setEmail(staffDto.getEmail());
+        user.setPhone(staffDto.getPhone());
+        userRepo.save(user);
+    }
+
+    public void updateManager(Integer id, ManagerDTO managerDTO) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên với ID: " + id));
+
+        user.setFullName(managerDTO.getFullName());
+        user.setBirthDay(managerDTO.getBirthDay());
+        user.setEmail(managerDTO.getEmail());
+        user.setPhone(managerDTO.getPhone());
+        userRepo.save(user);
+    }
+
     // Phương thức khóa tài khoản người dùng
     public User lockUserAccount(Integer userId) {
         User user = userRepo.findById(userId).orElse(null);
@@ -471,6 +500,10 @@ public class UserServiceImpl implements UserService{
             return userRepo.save(user);  // Cập nhật lại người dùng
         }
         return null;
+    }
+
+    public List<User> getBlockedUsers() {
+        return userRepo.findAllByStatus(UserStatus.BLOCKED); // Lấy tất cả tài khoản bị khóa
     }
 
     // Phương thức kiểm tra và mở lại tài khoản sau khi khóa 3 ngày

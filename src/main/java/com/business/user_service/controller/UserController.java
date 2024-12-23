@@ -253,12 +253,15 @@ public class UserController {
         try {
             Pageable pageable = PageRequest.of(page, size);
             Page<UserDTO> users = userService.getAllUsersWithRoles(pageable);
+
             return ResponseEntity.ok(users);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
     }
+
+
 
 
     @GetMapping("/{id}")
@@ -369,6 +372,18 @@ public class UserController {
             @RequestParam(defaultValue = "5") int size) {
         Page<UserDTO> users = userService.getUsersByRoleName("STAFF", page, size);
         return ResponseEntity.ok(users);
+    }
+
+    //api cập nhật thông tin nhân viên
+    @PutMapping("/managers/staffs/update/{id}")
+    public ResponseEntity<?> updateStaff(@PathVariable Integer id, @RequestBody StaffDTO staffDto) {
+        try {
+            userService.updateStaff(id, staffDto);
+            return ResponseEntity.ok("Cập nhật nhân viên thành công");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Lỗi khi cập nhật nhân viên: " + e.getMessage());
+        }
     }
 
 

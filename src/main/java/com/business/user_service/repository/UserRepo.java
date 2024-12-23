@@ -1,5 +1,6 @@
 package com.business.user_service.repository;
 
+import com.business.user_service.dto.UserDTO;
 import com.business.user_service.entity.User;
 import com.business.user_service.entity.UserStatus;
 import org.springframework.data.domain.Page;
@@ -43,4 +44,8 @@ public interface UserRepo extends JpaRepository<User, Integer> {
     List<User> findByStatus(UserStatus status);
 
     Integer countByStatus(UserStatus status);
+
+    List<User> findAllByStatus(UserStatus status);
+
+
 }

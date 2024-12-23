@@ -31,7 +31,7 @@ public class DataInitializer implements CommandLineRunner {
             User admin = new User();
             admin.setFullName("ADMIN");
             admin.setPhone("0936596049");
-            admin.setEmail("nguyenthanhtruc010202@gmail.com");
+            admin.setEmail("admin@gmail.com");
             admin.setPassword(encoder.encode("@Admin123")); // Mã hóa mật khẩu
 //            admin.setStatus("Đang hoạt động"); // Gán trạng thái mặc định
             admin.setStatus(UserStatus.ACTIVE);
