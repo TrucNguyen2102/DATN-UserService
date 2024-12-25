@@ -50,6 +50,7 @@ public class SecurityConfig {
 
                                 .requestMatchers("/api/users/{userId}/lock").permitAll()
                                 .requestMatchers("/api/users/{userId}/unlock").permitAll()
+                                .requestMatchers("/api/users/check-phone/{phone}").permitAll()
                         .requestMatchers("/api/users/all").hasAuthority("ADMIN")// xem ds tất cả user
                                 .requestMatchers("/api/users/{userId}/role").hasAuthority("ADMIN")// xem ds tất cả user
                         .requestMatchers("/api/users/admins/total-users").hasAuthority("ADMIN") // đếm số user

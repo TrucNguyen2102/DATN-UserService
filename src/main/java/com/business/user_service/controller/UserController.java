@@ -614,6 +614,17 @@ public class UserController {
         }
     }
 
+    @GetMapping("/check-phone/{phone}")
+    public ResponseEntity<Boolean> checkPhoneExists(@PathVariable String phone) {
+        try {
+            boolean exists = userService.existsByPhone(phone);
+            return ResponseEntity.ok(exists);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+    }
 
 
 
